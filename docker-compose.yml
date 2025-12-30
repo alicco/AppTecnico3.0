@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+
+    environment:
+      - DATABASE_URL=postgresql://postgres.sitxqsefkuaovgqunawa:4275142Ss.!@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+      - RUST_LOG=info
+    # Mount .env from backend just in case, though env vars above override
+    env_file:
+      - ./backend/.env
+
+

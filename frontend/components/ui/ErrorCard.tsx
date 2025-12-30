@@ -10,6 +10,7 @@ interface ErrorProps {
         estimated_abnormal_parts?: string;
         correction?: string;
         note?: string;
+        parts?: any[];
     };
 }
 

@@ -19,6 +19,7 @@ calamine = "0.24"
 uuid = { version = "1.7", features = ["serde", "v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 
+
 [profile.dev]
 incremental = false
 

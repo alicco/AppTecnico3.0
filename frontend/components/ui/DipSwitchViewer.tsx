@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
+import { getDipSwitches, type DipSwitch } from '@/app/actions/search';
 import {
     Dialog,
     DialogTitle,
@@ -28,16 +29,6 @@ import {
     Remove as RemoveIcon,
 } from '@mui/icons-material';
 
-interface DipSwitch {
-    id: string;
-    model_name: string;
-    switch_number: number;
-    bit_number: number;
-    function_name: string;
-    setting_0: string;
-    setting_1: string;
-    default_val: string;
-}
 
 interface DipSwitchViewerProps {
     model: string;
@@ -47,7 +38,7 @@ interface DipSwitchViewerProps {
 
 export function DipSwitchViewer({ model, target, onClose }: DipSwitchViewerProps) {
     const [switches, setSwitches] = useState<DipSwitch[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const [filterSw, setFilterSw] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -64,17 +55,16 @@ export function DipSwitchViewer({ model, target, onClose }: DipSwitchViewerProps
         if (model === 'C4070' || model === 'C4065') fetchModel = 'C4080'; // Logic alias as requested
 
         // eslint-disable-next-line
-        setLoading(true);
-        fetch(`http://localhost:8080/api/dipswitches?model=${encodeURIComponent(fetchModel)}`)
-            .then((res) => res.json())
-            .then((data) => {
-                setSwitches(data);
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error('Failed to fetch dipswitches', err);
-                setLoading(false);
-            });
+        // eslint-disable-next-line
+        startTransition(() => {
+            getDipSwitches(fetchModel)
+                .then((data) => {
+                    setSwitches(data);
+                })
+                .catch((err) => {
+                    console.error('Failed to fetch dipswitches', err);
+                });
+        });
     }, [model]);
 
     // Sync target to filter
@@ -249,7 +239,7 @@ export function DipSwitchViewer({ model, target, onClose }: DipSwitchViewerProps
             </Box>
 
             <DialogContent dividers sx={{ bgcolor: 'background.default', p: 0 }}>
-                {loading ? (
+                {isPending ? (
                     <Box display="flex" justifyContent="center" alignItems="center" height="400px">
                         <CircularProgress size={60} thickness={4} />
                     </Box>

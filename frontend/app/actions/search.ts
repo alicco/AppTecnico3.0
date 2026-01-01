@@ -95,3 +95,26 @@ export async function getAllModelCodes(modelName: string) {
         return [];
     }
 }
+
+export interface DipSwitch {
+    id: string;
+    model_name: string;
+    switch_number: number;
+    bit_number: number;
+    function_name: string;
+    setting_0: string;
+    setting_1: string;
+    default_val: string;
+}
+
+export async function getDipSwitches(modelName: string) {
+    try {
+        const params = new URLSearchParams({ model: modelName });
+        const res = await fetch(`${API_URL}/dipswitches?${params.toString()}`, { cache: 'no-store' });
+        if (!res.ok) return [];
+        return (await res.json()) as DipSwitch[];
+    } catch (e) {
+        console.error('Fetch dipswitches failed', e);
+        return [];
+    }
+}

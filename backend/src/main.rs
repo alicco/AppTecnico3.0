@@ -29,11 +29,19 @@ async fn main() {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set").trim().to_string();
 
     // Database Setup
-    let pool = PgPoolOptions::new()
+    let pool = match PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
-        .await
-        .expect("Failed to connect to Postgres");
+        .await {
+            Ok(pool) => {
+                tracing::info!("✅ Successfully connected to database");
+                pool
+            },
+            Err(e) => {
+                tracing::error!("❌ CRITICAL ERROR: Failed to connect to Postgres. URL: {}. Error: {}", database_url, e);
+                panic!("Database connection failed");
+            }
+        };
 
     // Migration
     sqlx::query(r#"
@@ -105,7 +113,7 @@ async fn main() {
 
     let port = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8000);
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+
     tracing::info!("listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

@@ -28,6 +28,7 @@ pub struct ErrorCode {
     pub solution: Option<String>,
     pub estimated_abnormal_parts: Option<String>,
     pub correction: Option<String>,
+    pub faulty_part_isolation: Option<String>,
     pub note: Option<String>,
     #[sqlx(skip)]
     pub parts: Vec<SparePart>,
@@ -44,5 +45,19 @@ pub struct ImportRow {
     #[serde(rename = "Estimated abnormal parts")]
     pub EstimatedParts: Option<String>,
     pub Correction: Option<String>,
+    #[serde(rename = "Faulty part isolation DIPSW")]
+    pub FaultyPartIsolation: Option<String>,
     pub Note: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, FromRow, Debug)]
+pub struct DipSwitch {
+    pub id: Uuid,
+    pub model_name: String,
+    pub switch_number: i32,
+    pub bit_number: i32,
+    pub function_name: Option<String>,
+    pub setting_0: Option<String>,
+    pub setting_1: Option<String>,
+    pub default_val: Option<String>,
 }

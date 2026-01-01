@@ -1,10 +1,6 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
-import * as XLSX from 'xlsx';
-import { revalidatePath } from 'next/cache';
-
-const API_URL = process.env.API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.API_URL || 'http://127.0.0.1:8080/api';
 
 export async function importErrorCodes(formData: FormData) {
     try {
@@ -13,7 +9,7 @@ export async function importErrorCodes(formData: FormData) {
             method: 'POST',
             body: formData,
             // Duplex needed for some node fetch implementations with streams, though usually optional for FormData
-            // @ts-ignore
+            // @ts-expect-error - duplex is not in standard RequestInit type yet
             duplex: 'half',
         });
 
@@ -24,12 +20,12 @@ export async function importErrorCodes(formData: FormData) {
 
         try {
             return JSON.parse(text);
-        } catch (e) {
+        } catch {
             console.error('[Import] Failed to parse JSON response');
             return { success: false, message: `Server returned non-JSON: ${res.status} ${res.statusText}` };
         }
-    } catch (e: any) {
+    } catch (e) {
         console.error('[Import] Critical Fetch Error:', e);
-        return { success: false, message: `Connection Error: ${e.message}` };
+        return { success: false, message: `Connection Error: ${(e as Error).message}` };
     }
 }

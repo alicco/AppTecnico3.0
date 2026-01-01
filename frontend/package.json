@@ -9,6 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.6",
+    "@mui/material": "^7.3.6",
+    "@mui/material-nextjs": "^7.3.6",
     "@supabase/supabase-js": "^2.89.0",
     "clsx": "^2.1.1",
     "csv-parse": "^6.1.0",

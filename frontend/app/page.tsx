@@ -1,101 +1,232 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
-import { getPrinters, searchErrors } from '@/app/actions/search';
+import { useState, useEffect, useTransition, useRef } from 'react';
+import { getPrinters, searchErrors, type ErrorCode } from '@/app/actions/search';
 import { ErrorCard } from '@/components/ui/ErrorCard';
-import { Search, Printer, Loader2 } from 'lucide-react';
+import { AutocompleteSearch } from '@/components/ui/AutocompleteSearch';
+import { DipSwitchViewer } from '@/components/ui/DipSwitchViewer';
+import {
+  Container,
+  Box,
+  Typography,
+  Paper,
+  Grid,
+  TextField,
+  MenuItem,
+  Button,
+  Stack,
+  CircularProgress,
+  InputAdornment
+} from '@mui/material';
+import { Print as PrintIcon, Search as SearchIcon, Settings as SettingsIcon, Tune as TuneIcon } from '@mui/icons-material';
 
 export default function Home() {
   const [printers, setPrinters] = useState<{ id: string, model_name: string }[]>([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [codeQuery, setCodeQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<ErrorCode[]>([]);
   const [isPending, startTransition] = useTransition();
+
+  // Dip Switch State
+  const [dipSwitchTarget, setDipSwitchTarget] = useState<{ switch: number, bit: number } | null>(null);
+  const [showDipSwitches, setShowDipSwitches] = useState(false);
+  const dipSwitchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getPrinters().then(setPrinters);
   }, []);
 
-  const handleSearch = () => {
+  const handleSearch = (overrideCode?: string) => {
     if (!selectedModel) return;
+    const query = overrideCode !== undefined ? overrideCode : codeQuery;
+
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
     startTransition(async () => {
-      const data = await searchErrors(selectedModel, codeQuery);
+      // Pass 'true' for exact matching on the main search action
+      const data = await searchErrors(selectedModel, query, true);
       setResults(data);
     });
   };
 
+  const onDipSwitchClick = (sw: number, bit: number) => {
+    setDipSwitchTarget({ switch: sw, bit });
+    setShowDipSwitches(true);
+    // Brief timeout to allow render
+    setTimeout(() => {
+      dipSwitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   return (
-    <main className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
+      <Container maxWidth="md" sx={{ pt: 8 }}>
+        <Stack spacing={6}>
 
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-            TechAssistant Pro
-          </h1>
-          <p className="text-gray-400">Professional Diagnostics & Spare Parts Lookup</p>
-        </div>
+          {/* Header */}
+          <Box textAlign="center">
+            <Typography
+              variant="h2"
+              fontWeight="800"
+              sx={{
+                background: 'linear-gradient(45deg, #005CAF 30%, #4facfe 90%)',
+                backgroundClip: 'text',
+                textFillColor: 'transparent',
+                mb: 1
+              }}
+            >
+              KM Insight
+            </Typography>
+            <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 0.5 }}>
+              Advanced Service Intelligence & Diagnostics for Konica Minolta
+            </Typography>
+            <Typography variant="body2" color="warning.main" sx={{ mb: 2, fontSize: '0.8rem', opacity: 0.8 }}>
+              ⚠️ Versione BETA. Non sostituisce il manuale tecnico ufficiale.
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, letterSpacing: 1 }}>
+              SVILUPPATO DA <a href="https://aisac.shop" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>AISAC</a>
+            </Typography>
+          </Box>
 
-        {/* Search Bar */}
-        <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            {/* Model Selector */}
-            <div className="md:col-span-4 relative">
-              <Printer className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full pl-10 h-11 bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 text-white appearance-none"
+          {/* Search Section */}
+          <Paper
+            elevation={3}
+            sx={{
+              p: 4,
+              borderRadius: 4,
+              border: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'background.paper'
+            }}
+          >
+            <Grid container spacing={3} alignItems="center">
+              {/* Model Selector */}
+              <Grid size={{ xs: 12, md: 4 }}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Select Model"
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PrintIcon color="action" />
+                        </InputAdornment>
+                      ),
+                    }
+                  }}
+                >
+                  {printers.map((p) => (
+                    <MenuItem key={p.id} value={p.model_name}>
+                      {p.model_name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+
+              {/* Search Input */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <AutocompleteSearch
+                  model={selectedModel}
+                  onSelect={(code) => {
+                    setCodeQuery(code);
+                    handleSearch(code);
+                  }}
+                  onQueryChange={setCodeQuery}
+                  placeholder="Enter Error Code..."
+                />
+              </Grid>
+
+              {/* Search Button */}
+              <Grid size={{ xs: 12, md: 2 }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  onClick={() => handleSearch()}
+                  disabled={isPending || !selectedModel}
+                  sx={{ height: 56, borderRadius: 2 }}
+                  startIcon={!isPending && <SearchIcon />}
+                >
+                  {isPending ? <CircularProgress size={24} color="inherit" /> : 'Search'}
+                </Button>
+              </Grid>
+            </Grid>
+          </Paper>
+
+          {/* Dip Switch Toggle */}
+          {selectedModel && (
+            <Box display="flex" justifyContent="center">
+              <Button
+                startIcon={<TuneIcon />}
+                onClick={() => setShowDipSwitches(true)}
+                variant="contained"
+                size="large"
+                sx={{
+                  background: 'linear-gradient(45deg, #005CAF 30%, #4facfe 90%)',
+                  borderRadius: 50,
+                  px: 4,
+                  py: 1.5,
+                  boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  transition: 'transform 0.2s',
+                  '&:hover': {
+                    transform: 'scale(1.02)',
+                    background: 'linear-gradient(45deg, #004b8f 30%, #3a8fd5 90%)',
+                  }
+                }}
               >
-                <option value="">Select Model...</option>
-                {printers.map(p => (
-                  <option key={p.id} value={p.model_name}>{p.model_name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Search Input */}
-            <div className="md:col-span-6 relative">
-              <Search className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
-              <input
-                type="text"
-                placeholder="Search Error Code (e.g. C-1234)"
-                value={codeQuery}
-                onChange={(e) => setCodeQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-10 h-11 bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-500"
-              />
-            </div>
-
-            {/* Search Button */}
-            <div className="md:col-span-2">
-              <button
-                onClick={handleSearch}
-                disabled={isPending || !selectedModel}
-                className="w-full h-11 flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-              >
-                {isPending ? <Loader2 className="animate-spin h-5 w-5" /> : 'Search'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Results */}
-        <div className="space-y-6">
-          {results.length > 0 ? (
-            results.map((err) => (
-              <ErrorCard key={err.id} error={err} />
-            ))
-          ) : (
-            !isPending && codeQuery && (
-              <div className="text-center text-gray-500 py-12">
-                <p>No results found for current filter.</p>
-              </div>
-            )
+                {showDipSwitches ? 'DipSW Matrix Active' : 'Open DipSW Matrix'}
+              </Button>
+            </Box>
           )}
-        </div>
 
-      </div>
-    </main>
+          {/* Dip Switch Viewer Modal/Section */}
+          {showDipSwitches && selectedModel && (
+            <DipSwitchViewer
+              model={selectedModel}
+              target={dipSwitchTarget}
+              onClose={() => {
+                setShowDipSwitches(false);
+                setDipSwitchTarget(null);
+              }}
+            />
+          )}
+
+          {/* Results */}
+          <Stack spacing={3}>
+            {results.length > 0 ? (
+              results.map((err) => (
+                <ErrorCard
+                  key={err.id}
+                  error={err}
+                  onDipSwitchClick={onDipSwitchClick}
+                />
+              ))
+            ) : (
+              !isPending && codeQuery && (
+                <Box textAlign="center" py={8}>
+                  <Typography variant="h5" color="text.secondary" gutterBottom>
+                    No exact match found
+                  </Typography>
+                  <Typography variant="body2" color="text.disabled">
+                    Try selecting a suggestion from the list
+                  </Typography>
+                </Box>
+              )
+            )}
+          </Stack>
+
+        </Stack>
+      </Container>
+    </Box>
   );
 }

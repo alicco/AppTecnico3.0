@@ -1,7 +1,7 @@
 import pdfplumber
 import re
 
-pdf_path = "dipswC6100.pdf"
+pdf_path = "docs/dipswC6100.pdf"
 
 print(f"Inspecting {pdf_path} for Switch 1...")
 

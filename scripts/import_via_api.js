@@ -10,7 +10,7 @@ const models = [
     'C4065'
 ];
 
-const FILE_PATH = 'Codici_C4080_C4070_C4065.xlsx';
+const FILE_PATH = 'docs/Codici_C4080_C4070_C4065.xlsx';
 const API_URL = 'http://localhost:8000/api/import';
 const TEMP_CSV_FILENAME = 'temp_import.csv';
 

@@ -14,8 +14,11 @@ import {
     CheckCircle as CheckCircleIcon,
     Info as InfoIcon,
     Build as BuildIcon,
-    Construction as ConstructionIcon
+    Construction as ConstructionIcon,
+    Settings as SettingsIcon
 } from '@mui/icons-material';
+import { useState } from 'react';
+import { SparePartsSearch } from './SparePartsSearch';
 
 interface SparePart {
     oem_code: string;
@@ -39,18 +42,36 @@ interface ErrorProps {
         parts?: SparePart[];
     };
     onDipSwitchClick?: (sw: number, bit: number) => void;
+    model?: string;
 }
 
-export function ErrorCard({ error, onDipSwitchClick }: ErrorProps) {
+export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
     const theme = useTheme();
+    const [partSearchOpen, setPartSearchOpen] = useState(false);
+    const [partQuery, setPartQuery] = useState('');
 
-    // Helper to turn specific text patterns into links
+    // Extract Model Name from props if available? 
+    // Wait, ErrorCard receives 'error' object which has printer_id but maybe not model name directly?
+    // The 'error' object in ErrorProps doesn't have model name.
+    // However, the parent page knows the selected model.
+    // Ideally we should pass model name to ErrorCard.
+    // For now, let's assume we can get it or we need to update props.
+    // Checking page.tsx: <ErrorCard key={err.id} error={err} ... />
+    // The 'err' object from 'searchErrors' has 'printer: { model_name }' join? 
+    // In handlers.rs: SELECT e.* FROM error_codes e JOIN printers p ...
+    // But struct ErrorCode doesn't have printer model.
+    // However, the user SELECTED the model in the dropdown in page.tsx.
+    // We should pass 'model={selectedModel}' to ErrorCard.
+
+    // TEMPORARY FIX: We need to update props to include model.
+    // For this step, I'll update the component structure and Logic, then I'll update Page.tsx to pass model.
+
+    // Helper for general text - only detects DipSwitches
     const renderLinkedText = (text: string | undefined, isPreWrap = false) => {
         if (!text) return null;
 
-        // Regex for DipSW X-Y or SW X-Y
-        const regex = /(?:DipSW|SW)\s*(\d+)-(\d+)/gi;
-        const matches = [...text.matchAll(regex)];
+        const dipswRegex = /(?:DipSW|SW)\s*(\d+)-(\d+)/gi;
+        const matches = [...text.matchAll(dipswRegex)];
 
         if (matches.length === 0) {
             return isPreWrap ? <Box component="span" sx={{ whiteSpace: 'pre-wrap' }}>{text}</Box> : text;
@@ -63,7 +84,6 @@ export function ErrorCard({ error, onDipSwitchClick }: ErrorProps) {
             const [fullMatch, swStr, bitStr] = match;
             const index = match.index!;
 
-            // Text before match
             if (index > cursor) {
                 elements.push(
                     <Box component="span" key={`txt-${index}`} sx={{ whiteSpace: isPreWrap ? 'pre-wrap' : 'normal' }}>
@@ -72,20 +92,16 @@ export function ErrorCard({ error, onDipSwitchClick }: ErrorProps) {
                 );
             }
 
-            // The Link
-            const swNum = parseInt(swStr);
-            const bitNum = parseInt(bitStr);
-
             elements.push(
                 <Chip
                     key={`link-${index}`}
                     size="small"
                     label={fullMatch}
-                    icon={<ConstructionIcon style={{ fontSize: 14 }} />}
+                    icon={<SettingsIcon style={{ fontSize: 14 }} />}
                     color="secondary"
                     onClick={(e) => {
                         e.stopPropagation();
-                        onDipSwitchClick?.(swNum, bitNum);
+                        onDipSwitchClick?.(parseInt(swStr), parseInt(bitStr));
                     }}
                     sx={{
                         mx: 0.5,
@@ -101,6 +117,191 @@ export function ErrorCard({ error, onDipSwitchClick }: ErrorProps) {
             );
 
             cursor = index + fullMatch.length;
+        }
+
+        if (cursor < text.length) {
+            elements.push(
+                <Box component="span" key={`txt-end`} sx={{ whiteSpace: isPreWrap ? 'pre-wrap' : 'normal' }}>
+                    {text.slice(cursor)}
+                </Box>
+            );
+        }
+
+        return <>{elements}</>;
+    };
+
+    // Helper for spare parts section - detects DipSwitches AND part patterns
+    const renderLinkedTextWithParts = (text: string | undefined, isPreWrap = false) => {
+        if (!text) return null;
+
+        // Define all patterns - ORDER MATTERS! More specific patterns first
+        const patterns = [
+            // 1. DipSW X-Y or SW X-Y
+            {
+                regex: /(?:DipSW|SW)\s*(\d+)-(\d+)/gi,
+                type: 'dipswitch' as const,
+                icon: <SettingsIcon style={{ fontSize: 14 }} />,
+                color: 'secondary' as const
+            },
+            // 2. Part names WITH acronym in parentheses (e.g., "Printer control board (PRCB)", "Fan Motor (FM1)")
+            // This must come BEFORE standalone acronym detection to avoid duplicates
+            {
+                regex: /((?:Fusing|Transfer|Drum|Developer|Charge|Cleaning|DC\s*power\s*supply|Printer\s*control|Paper\s*lift\s*motor|Upper\s*limit\s*sensor|Fan\s*motor|Motor|Clutch|Solenoid|Photo\s*sensor|Photointerrupter|Temperature\s*sensor|Thermostat|Switch)\s*(?:Unit|Roller|Assembly|Board|\/\d+)?\s*\([A-Z0-9]{2,6}\))/gi,
+                type: 'partname_with_acronym' as const,
+                icon: <BuildIcon style={{ fontSize: 14 }} />,
+                color: 'success' as const
+            },
+            // 3. Part names WITHOUT acronym
+            {
+                regex: /((?:Fusing|Transfer|Drum|Developer|Charge|Cleaning|DC\s*power\s*supply|Printer\s*control|Paper\s*lift\s*motor|Upper\s*limit\s*sensor|Fan\s*motor|Motor|Clutch|Solenoid|Photo\s*sensor|Photointerrupter|Temperature\s*sensor|Thermostat|Switch)\s*(?:Unit|Roller|Assembly|Board|\/\d+)?)/gi,
+                type: 'partname' as const,
+                icon: <BuildIcon style={{ fontSize: 14 }} />,
+                color: 'success' as const
+            },
+            // 4. Standalone acronyms (only if not already matched by compound pattern)
+            {
+                regex: /\b([A-Z]{2,6}\d*|[A-Z]+\d{1,3})\b/g,
+                type: 'acronym' as const,
+                icon: <BuildIcon style={{ fontSize: 14 }} />,
+                color: 'success' as const
+            },
+            // 5. Alphanumeric part codes (8-12 chars)
+            {
+                regex: /\b([A-Z0-9]{8,12})\b/g,
+                type: 'partcode' as const,
+                icon: <BuildIcon style={{ fontSize: 14 }} />,
+                color: 'success' as const
+            }
+        ];
+
+        // Find all matches from all patterns
+        const allMatches: Array<{
+            index: number;
+            length: number;
+            text: string;
+            type: string;
+            icon: JSX.Element;
+            color: 'secondary' | 'success';
+            swNum?: number;
+            bitNum?: number;
+        }> = [];
+
+        for (const pattern of patterns) {
+            const matches = [...text.matchAll(pattern.regex)];
+            for (const match of matches) {
+                const index = match.index!;
+                const fullMatch = match[0];
+
+                // Skip if this overlaps with an existing match
+                const overlaps = allMatches.some(m =>
+                    (index >= m.index && index < m.index + m.length) ||
+                    (index + fullMatch.length > m.index && index + fullMatch.length <= m.index + m.length)
+                );
+
+                if (!overlaps) {
+                    if (pattern.type === 'dipswitch') {
+                        allMatches.push({
+                            index,
+                            length: fullMatch.length,
+                            text: fullMatch,
+                            type: pattern.type,
+                            icon: pattern.icon,
+                            color: pattern.color,
+                            swNum: parseInt(match[1]),
+                            bitNum: parseInt(match[2])
+                        });
+                    } else {
+                        allMatches.push({
+                            index,
+                            length: fullMatch.length,
+                            text: fullMatch,
+                            type: pattern.type,
+                            icon: pattern.icon,
+                            color: pattern.color
+                        });
+                    }
+                }
+            }
+        }
+
+        // Sort by index
+        allMatches.sort((a, b) => a.index - b.index);
+
+        if (allMatches.length === 0) {
+            return isPreWrap ? <Box component="span" sx={{ whiteSpace: 'pre-wrap' }}>{text}</Box> : text;
+        }
+
+        const elements = [];
+        let cursor = 0;
+
+        for (const match of allMatches) {
+            // Text before match
+            if (match.index > cursor) {
+                elements.push(
+                    <Box component="span" key={`txt-${match.index}`} sx={{ whiteSpace: isPreWrap ? 'pre-wrap' : 'normal' }}>
+                        {text.slice(cursor, match.index)}
+                    </Box>
+                );
+            }
+
+            // The clickable chip
+            if (match.type === 'dipswitch') {
+                elements.push(
+                    <Chip
+                        key={`link-${match.index}`}
+                        size="small"
+                        label={match.text}
+                        icon={match.icon}
+                        color={match.color}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDipSwitchClick?.(match.swNum!, match.bitNum!);
+                        }}
+                        sx={{
+                            mx: 0.5,
+                            height: 24,
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            '&:hover': {
+                                backgroundColor: theme.palette.secondary.dark,
+                            }
+                        }}
+                    />
+                );
+            } else {
+                // Part search (acronym, partname, or partcode)
+                elements.push(
+                    <Chip
+                        key={`link-${match.index}`}
+                        size="small"
+                        label={match.text}
+                        icon={match.icon}
+                        color={match.color}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (!model) {
+                                alert('Please select a model first');
+                                return;
+                            }
+                            setPartQuery(match.text);
+                            setPartSearchOpen(true);
+                        }}
+                        sx={{
+                            mx: 0.5,
+                            height: 24,
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            '&:hover': {
+                                backgroundColor: theme.palette.success.dark,
+                            }
+                        }}
+                    />
+                );
+            }
+
+            cursor = match.index + match.length;
         }
 
         // Text after last match
@@ -318,10 +519,11 @@ export function ErrorCard({ error, onDipSwitchClick }: ErrorProps) {
                                             p: 1.5,
                                             bgcolor: 'background.default',
                                             borderRadius: 1,
-                                            fontFamily: 'monospace'
                                         }}
                                     >
-                                        {error.estimated_abnormal_parts}
+                                        <Typography variant="body2" component="div">
+                                            {renderLinkedTextWithParts(error.estimated_abnormal_parts)}
+                                        </Typography>
                                     </Box>
                                 </Box>
                             )}
@@ -369,6 +571,16 @@ export function ErrorCard({ error, onDipSwitchClick }: ErrorProps) {
                     )}
                 </Stack>
             </CardContent>
+
+            {/* Spare Parts Search Dialog */}
+            {model && (
+                <SparePartsSearch
+                    open={partSearchOpen}
+                    onClose={() => setPartSearchOpen(false)}
+                    initialQuery={partQuery}
+                    model={model}
+                />
+            )}
         </Card>
     );
 }

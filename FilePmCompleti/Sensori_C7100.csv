@@ -1,0 +1,62 @@
+model,part_id,part_code,description,section,key,page
+C7100,PS1,A9VEM55100,Compensating Sensor,Duplex Section,10,107
+C7100,PS2,13QA85511,Conveyance Photo Sensor,Duplex Section,1,107
+C7100,PS3,A85CM55600,Photo Sensor,Resist Section,8,111
+C7100,PS4,9335140071,Solid State Switch,Duplex Section,2,96
+C7100,PS5,A85CM55600,Photo Sensor,Duplex Section,7,94
+C7100,PS6,9335140071,Solid State Switch,Duplex Section,3,99
+C7100,PS7,9335140071,Solid State Switch,Duplex Section,3,99
+C7100,PS8,A85CM55600,Photo Sensor,Secondary Transfer Section,8,114
+C7100,PS9,A85CM55500,Photo Sensor,Reverse Section,24,117
+C7100,PS10,9335140071,Solid State Switch,Reverse Section,2,122
+C7100,PS12,9335140071,Solid State Switch,Duplex Carriage Section,20,85
+C7100,PS13,9335140071,Solid State Switch,Duplex Carriage Section,10,84
+C7100,PS14,A85CM55600,Photo Sensor,Duplex Carriage Section,7,90
+C7100,PS15,A85CM55600,Photo Sensor,Duplex Section,7,94
+C7100,PS16,A85CM55600,Photo Sensor,Duplex Section,7,94
+C7100,PS17,A85CM55600,Photo Sensor,Duplex Section,1,104
+C7100,PS18,A9VP718300,Sensor Plate /1,Duplex Section,18,107
+C7100,PS19,A85CM55600,Photo Sensor,Duplex Section,7,92
+C7100,PS20,A85CM55600,Photo Sensor,Duplex Section,7,92
+C7100,PS21,A85CM55600,Photo Sensor,Duplex Swing Section,22,115
+C7100,PS24,A85CM55600,Photo Sensor,Color Resist Section,26,55
+C7100,PS25,A85CM55600,Photo Sensor,Color Resist Section,26,55
+C7100,PS26,A85CM55600,Photo Sensor,Color Resist Section,26,55
+C7100,PS27,A03TM50000,Photoreflector,Exit Section,14,125
+C7100,PS28,A85CM55500,Photo Sensor,Exit Section,9,126
+C7100,PS29,9335140071,Solid State Switch,Duplex Carriage Section,8,87
+C7100,PS31,A50UM51000,Photointerrupter,Main Frame Section,21,5
+C7100,PS32,A50UM51000,Photointerrupter,Main Frame Section,21,5
+C7100,PS33,9335140051,Solid State Switch,Toner Collection Section,5,41
+C7100,PS34,A50UM51000,Photointerrupter,Toner Collection Section,11,41
+C7100,PS35,A50UM51000,Photointerrupter,Vertical Conveyance Section,20,80
+C7100,PS36,9335140071,Solid State Switch,Vertical Conveyance Section,11,80
+C7100,PS37,A85CM55600,Photo Sensor,Drum Driving Section,18,74
+C7100,PS39,A85CM55600,Photo Sensor,Drum Driving Section,21,76
+C7100,PS40,A9VP211200,Sensor Pedestal /Color,Drum Driving Section,17,74
+C7100,PS42,A85CM55600,Photo Sensor,Tray Paper Feed Section,14,68
+C7100,PS43,A85CM55600,Photo Sensor,Tray Paper Feed Section,14,68
+C7100,PS44,A85CM55600,Photo Sensor,Tray Paper Feed Section,14,68
+C7100,PS47,A85CM55600,Photo Sensor,Tray Section,24,64
+C7100,PS48,A85CM55600,Photo Sensor,Tray Section,24,64
+C7100,PS49,A85CM55600,Photo Sensor,Process Carriage Section,4,25
+C7100,PS50,A85CM55600,Photo Sensor,Intermediate Transfer Section,16,48
+C7100,PS51,A85CM55600,Photo Sensor,Duplex Section,1,104
+C7100,PS52,A85CM55600,Photo Sensor,Drum Driving Section,18,74
+C7100,PS53,A85CM55600,Photo Sensor,Drum Driving Section,18,74
+C7100,PS56,A85CM55600,Photo Sensor,Drum Driving Section,21,76
+C7100,PS57,A85CM55600,Photo Sensor,Drum Driving Section,21,76
+C7100,PS60,A85CM55600,Photo Sensor,Process Carriage Section,5,22
+C7100,PS61,A85CM55600,Photo Sensor,Process Carriage Section,5,22
+C7100,PS62,A85CM55600,Photo Sensor,Process Carriage Section,5,22
+C7100,PS63,A85CM55600,Photo Sensor,Process Carriage Section,5,22
+C7100,PS65,A85CM55600,Photo Sensor,Process Carriage Section,4,27
+C7100,PS66,A85CM55600,Photo Sensor,Process Carriage Section,7,24
+C7100,PS67,A85CM55600,Photo Sensor,Process Carriage Section,4,27
+C7100,PS68,A50UM51000,Photointerrupter,Charge Control Section,6,128
+C7100,PS69,A85CM55600,Photo Sensor,Process Carriage Section,7,24
+C7100,PS70,9335140071,Solid State Switch,Duplex Section,3,98
+C7100,PS78,A85CM55600,Photo Sensor,Process Carriage Section,4,28
+C7100,PS79,A85CM55600,Photo Sensor,Process Carriage Section,7,24
+C7100,PS80,A85CM55600,Photo Sensor,Process Carriage Section,4,28
+C7100,PS81,A85CM55600,Photo Sensor,Process Carriage Section,7,24

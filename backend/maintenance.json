@@ -1,0 +1,698 @@
+[
+  {
+    "name": "External section",
+    "items": [
+      {
+        "name": "Filter box",
+        "qty": "1",
+        "life": "600K",
+        "code": "A50UR70A12",
+        "page_key": "P11-27"
+      }
+    ]
+  },
+  {
+    "name": "External section",
+    "items": [
+      {
+        "name": "Developing dust-proof filter/1",
+        "qty": "1",
+        "life": "600K",
+        "code": "A50U172200",
+        "page_key": "P5-27"
+      },
+      {
+        "name": "Developing dust-proof filter/2",
+        "qty": "1",
+        "life": "600K",
+        "code": "A50U172300",
+        "page_key": "P5-29"
+      },
+      {
+        "name": "PH dust-proof filter",
+        "qty": "1",
+        "life": "600K",
+        "code": "A50U172100",
+        "page_key": "P5-26"
+      },
+      {
+        "name": "Electric component cooling filter",
+        "qty": "1",
+        "life": "600K",
+        "code": "A50U109900",
+        "page_key": "P8-15"
+      },
+      {
+        "name": "Suction dust-proof filter",
+        "qty": "1",
+        "life": "600K",
+        "code": "A50U164901",
+        "page_key": "P2-11"
+      },
+      {
+        "name": "Intermediate transfer cooling filter",
+        "qty": "1",
+        "life": "600K",
+        "code": "AC57121100",
+        "page_key": "P5-32"
+      }
+    ]
+  },
+  {
+    "name": "Paper feed section",
+    "items": [
+      {
+        "name": "Paper feed roller rubber",
+        "qty": "2",
+        "life": "125K",
+        "code": "25SA40960",
+        "page_key": "P70-3"
+      },
+      {
+        "name": "Separation roller rubber",
+        "qty": "2",
+        "life": "125K",
+        "code": "25SA40960",
+        "page_key": "P68-1"
+      }
+    ]
+  },
+  {
+    "name": "Toner collection section",
+    "items": [
+      {
+        "name": "Waste toner box",
+        "qty": "1",
+        "life": "130K",
+        "code": "A50UR70115",
+        "page_key": "P34-19"
+      }
+    ]
+  },
+  {
+    "name": "Charging section",
+    "items": [
+      {
+        "name": "Charging corona/Y",
+        "qty": "1",
+        "life": "210K",
+        "code": "AC57R70122",
+        "page_key": "P22-1"
+      },
+      {
+        "name": "Charging corona/M",
+        "qty": "1",
+        "life": "210K",
+        "code": "AC57R70122",
+        "page_key": "P22-1"
+      },
+      {
+        "name": "Charging corona/C",
+        "qty": "1",
+        "life": "210K",
+        "code": "AC57R70122",
+        "page_key": "P22-1"
+      },
+      {
+        "name": "Charging corona/K",
+        "qty": "1",
+        "life": "210K",
+        "code": "AC57R70122",
+        "page_key": "P22-1"
+      }
+    ]
+  },
+  {
+    "name": "Intermediate transfer section (STEP2)",
+    "items": [
+      {
+        "name": "Toner collection sheet (STEP2)",
+        "qty": "1",
+        "life": "220K",
+        "code": "A1DUR71C11",
+        "page_key": "P41-11"
+      },
+      {
+        "name": "Transfer belt cleaning blade (STEP2)",
+        "qty": "1",
+        "life": "220K",
+        "code": "AAK7R71711",
+        "page_key": "P41-16"
+      },
+      {
+        "name": "Side seal (STEP2)",
+        "qty": "2",
+        "life": "220K",
+        "code": "A50U531601",
+        "page_key": "P41-15"
+      }
+    ]
+  },
+  {
+    "name": "Intermediate transfer section (STEP3)",
+    "items": [
+      {
+        "name": "Transfer belt cleaning unit (STEP3)",
+        "qty": "1",
+        "life": "220K",
+        "code": "AC57R75144",
+        "page_key": "P36-1"
+      },
+      {
+        "name": "Intermediate transfer belt/C (STEP3)",
+        "qty": "1",
+        "life": "346K",
+        "code": "A9VE500200",
+        "page_key": "P38-35"
+      }
+    ]
+  },
+  {
+    "name": "Intermediate transfer section",
+    "items": [
+      {
+        "name": "1st transfer roller/Y",
+        "qty": "1",
+        "life": "440K",
+        "code": "A50U501201",
+        "page_key": "P39-9"
+      },
+      {
+        "name": "1st transfer roller/M",
+        "qty": "1",
+        "life": "440K",
+        "code": "A50U501201",
+        "page_key": "P39-9"
+      },
+      {
+        "name": "1st transfer roller/C",
+        "qty": "1",
+        "life": "440K",
+        "code": "A50U501201",
+        "page_key": "P39-9"
+      },
+      {
+        "name": "1st transfer roller/K",
+        "qty": "1",
+        "life": "440K",
+        "code": "A50U501201",
+        "page_key": "P39-9"
+      },
+      {
+        "name": "2nd transfer roller/Up",
+        "qty": "1",
+        "life": "440K",
+        "code": "A50U500401",
+        "page_key": "P38-13"
+      },
+      {
+        "name": "2nd transfer roller/Lw",
+        "qty": "1",
+        "life": "440K",
+        "code": "A50U529100",
+        "page_key": "P59-1"
+      },
+      {
+        "name": "Separate discharging unit",
+        "qty": "1",
+        "life": "440K",
+        "code": "A50UR70B00",
+        "page_key": "P59-6"
+      }
+    ]
+  },
+  {
+    "name": "Intermediate transfer section (STEP2)",
+    "items": [
+      {
+        "name": "Intermediate transfer belt (STEP2)",
+        "qty": "1",
+        "life": "440K",
+        "code": "A9VE500100",
+        "page_key": "P38-35"
+      },
+      {
+        "name": "Intermediate transfer belt (STEP2)",
+        "qty": "1",
+        "life": "440K",
+        "code": "A9VE500200",
+        "page_key": "P38-35"
+      }
+    ]
+  },
+  {
+    "name": "Registration section",
+    "items": [
+      {
+        "name": "Registration cleaning sheet assy",
+        "qty": "1",
+        "life": "600K",
+        "code": "AC57R73400",
+        "page_key": "P104-30"
+      }
+    ]
+  },
+  {
+    "name": "Fusing section",
+    "items": [
+      {
+        "name": "Heat insulating sleeve/Lw",
+        "qty": "2",
+        "life": "600K",
+        "code": "A50U756300",
+        "page_key": "P46-13"
+      }
+    ]
+  },
+  {
+    "name": "Charge control section",
+    "items": [
+      {
+        "name": "Charging roller/Up",
+        "qty": "1",
+        "life": "750K",
+        "code": "AC57899000",
+        "page_key": "P109-21"
+      }
+    ]
+  },
+  {
+    "name": "Paper feed section",
+    "items": [
+      {
+        "name": "Pick-up roller",
+        "qty": "2",
+        "life": "800K",
+        "code": "A1DUR71J00",
+        "page_key": "P70-19"
+      }
+    ]
+  },
+  {
+    "name": "Intermediate transfer section",
+    "items": [
+      {
+        "name": "Transfer belt separation claw",
+        "qty": "3",
+        "life": "888K",
+        "code": "A1DUR71900",
+        "page_key": "P39-8"
+      }
+    ]
+  },
+  {
+    "name": "Intermediate transfer section (STEP2)",
+    "items": [
+      {
+        "name": "Transfer belt cleaning unit (STEP2)",
+        "qty": "1",
+        "life": "888K",
+        "code": "A50UR70666",
+        "page_key": "P36-1"
+      }
+    ]
+  },
+  {
+    "name": "Fusing section",
+    "items": [
+      {
+        "name": "Heat insulating sleeve/belt",
+        "qty": "2",
+        "life": "888K",
+        "code": "A50U756300",
+        "page_key": "P49-13"
+      },
+      {
+        "name": "Fusing gear/1",
+        "qty": "1",
+        "life": "888K",
+        "code": "A50U752700",
+        "page_key": "P46-9"
+      },
+      {
+        "name": "Fusing gear/3",
+        "qty": "1",
+        "life": "888K",
+        "code": "A50U752200",
+        "page_key": "P44-23"
+      },
+      {
+        "name": "Fusing belt",
+        "qty": "1",
+        "life": "888K",
+        "code": "A50U765000",
+        "page_key": "P49-14"
+      }
+    ]
+  },
+  {
+    "name": "Reverse and exit section",
+    "items": [
+      {
+        "name": "Paper exit de-curler roller",
+        "qty": "1",
+        "life": "1,000K",
+        "code": "AC57890800",
+        "page_key": "P106-20"
+      },
+      {
+        "name": "Paper exit drive gear /1",
+        "qty": "1",
+        "life": "1,000K",
+        "code": "A03U909502",
+        "page_key": "P106-13"
+      },
+      {
+        "name": "Paper exit gear",
+        "qty": "1",
+        "life": "1,000K",
+        "code": "A50U899700",
+        "page_key": "P106-29"
+      },
+      {
+        "name": "Reverse de-curler roller",
+        "qty": "1",
+        "life": "1,000K",
+        "code": "AC57860500",
+        "page_key": "P99-16"
+      }
+    ]
+  },
+  {
+    "name": "Charge control section",
+    "items": [
+      {
+        "name": "Paper exit drive gear/2",
+        "qty": "1",
+        "life": "1,000K",
+        "code": "A043909901",
+        "page_key": "P105-7"
+      }
+    ]
+  },
+  {
+    "name": "Fusing section",
+    "items": [
+      {
+        "name": "Fusing paper exit roller/Up",
+        "qty": "2",
+        "life": "1,200K",
+        "code": "A9VE760900",
+        "page_key": "P50-8"
+      }
+    ]
+  },
+  {
+    "name": "Developing section",
+    "items": [
+      {
+        "name": "Developing unit/Y",
+        "qty": "1",
+        "life": "1,200K",
+        "code": "AC57R70233",
+        "page_key": "P24-10"
+      },
+      {
+        "name": "Developing unit/M",
+        "qty": "1",
+        "life": "1,200K",
+        "code": "AC57R70233",
+        "page_key": "P25-10"
+      },
+      {
+        "name": "Developing unit/C",
+        "qty": "1",
+        "life": "1,200K",
+        "code": "AC57R70233",
+        "page_key": "P26-10"
+      },
+      {
+        "name": "Developing unit/K",
+        "qty": "1",
+        "life": "1,200K",
+        "code": "AC57R70233",
+        "page_key": "P27-10"
+      }
+    ]
+  },
+  {
+    "name": "Registration section",
+    "items": [
+      {
+        "name": "Registration roller",
+        "qty": "1",
+        "life": "1,400K",
+        "code": "AC57710100",
+        "page_key": "P102-7"
+      },
+      {
+        "name": "Registration roller bearing",
+        "qty": "2",
+        "life": "1,400K",
+        "code": "A03U812800",
+        "page_key": "P102-6"
+      }
+    ]
+  },
+  {
+    "name": "Intermediate transfer section",
+    "items": [
+      {
+        "name": "Belt separation claw solenoid (SD2)",
+        "qty": "1",
+        "life": "1,600K",
+        "code": "26NA82513",
+        "page_key": "P7-2"
+      },
+      {
+        "name": "2nd transfer earth plate assy",
+        "qty": "2",
+        "life": "1,760K",
+        "code": "A50UR70G01",
+        "page_key": "P82-21"
+      },
+      {
+        "name": "C-clip",
+        "qty": "2",
+        "life": "1,760K",
+        "code": "V218060086",
+        "page_key": "P59-c"
+      }
+    ]
+  },
+  {
+    "name": "Fusing section",
+    "items": [
+      {
+        "name": "Fusing bearing/Lw",
+        "qty": "4",
+        "life": "1,800K",
+        "code": "26NA53712",
+        "page_key": "P46-2"
+      },
+      {
+        "name": "Fusing gear/2",
+        "qty": "1",
+        "life": "1,800K",
+        "code": "A03U809500",
+        "page_key": "P49-5"
+      },
+      {
+        "name": "Heat insulating sleeve/Up",
+        "qty": "2",
+        "life": "1,800K",
+        "code": "A9VP744900",
+        "page_key": "P49-16"
+      },
+      {
+        "name": "Fusing ball bearing/Up",
+        "qty": "2",
+        "life": "1,800K",
+        "code": "AC57745000",
+        "page_key": "P49-17"
+      },
+      {
+        "name": "Belt regulating sleeve",
+        "qty": "2",
+        "life": "1,800K",
+        "code": "A9VE724100",
+        "page_key": "P49-22"
+      },
+      {
+        "name": "Fusing roller/1",
+        "qty": "1",
+        "life": "1,800K",
+        "code": "A9VE720300",
+        "page_key": "P49-18"
+      },
+      {
+        "name": "Fusing roller/2",
+        "qty": "1",
+        "life": "1,800K",
+        "code": "A9VE720500",
+        "page_key": "P49-19"
+      },
+      {
+        "name": "Fusing roller/Lw",
+        "qty": "1",
+        "life": "1,800K",
+        "code": "A50U765500",
+        "page_key": "P46-15"
+      },
+      {
+        "name": "Fusing separating claw assy",
+        "qty": "5",
+        "life": "1,800K",
+        "code": "A50UR72U11",
+        "page_key": "P50-33"
+      }
+    ]
+  },
+  {
+    "name": "Paper feed section",
+    "items": [
+      {
+        "name": "Paper feed clutch",
+        "qty": "2",
+        "life": "2,000K",
+        "code": "A795M20311",
+        "page_key": "P70-13"
+      },
+      {
+        "name": "Pre-registration clutch",
+        "qty": "2",
+        "life": "2,000K",
+        "code": "A795M20311",
+        "page_key": "P69-20"
+      }
+    ]
+  },
+  {
+    "name": "Vertical conveyance section",
+    "items": [
+      {
+        "name": "Intermediate conveyance clutch/1 (CL5)",
+        "qty": "1",
+        "life": "2,000K",
+        "code": "A795M20311",
+        "page_key": "P81-5"
+      }
+    ]
+  },
+  {
+    "name": "Duplex section",
+    "items": [
+      {
+        "name": "Intermediate conveyance clutch/2 (CL6)",
+        "qty": "1",
+        "life": "2,000K",
+        "code": "AC57M20011",
+        "page_key": "P87-9"
+      },
+      {
+        "name": "Intermediate conveyance clutch/3 (CL7)",
+        "qty": "1",
+        "life": "2,000K",
+        "code": "AC57M20011",
+        "page_key": "P87-9"
+      }
+    ]
+  },
+  {
+    "name": "Registration section",
+    "items": [
+      {
+        "name": "Registration idler gear",
+        "qty": "1",
+        "life": "2,800K",
+        "code": "A50U713700",
+        "page_key": "P88-10"
+      }
+    ]
+  },
+  {
+    "name": "Fusing section",
+    "items": [
+      {
+        "name": "Fusing heater lamp 1 assy/Up",
+        "qty": "1",
+        "life": "3,000K",
+        "code": "A9VEM31E00",
+        "page_key": "P49-4"
+      },
+      {
+        "name": "Fusing heater lamp 1 assy/Up",
+        "qty": "1",
+        "life": "3,000K",
+        "code": "A9VEM31F00",
+        "page_key": "P49-4"
+      },
+      {
+        "name": "Fusing heater lamp 2 assy/Up",
+        "qty": "1",
+        "life": "3,000K",
+        "code": "A9VEM33E00",
+        "page_key": "P49-30"
+      },
+      {
+        "name": "Fusing heater lamp 2 assy/Up",
+        "qty": "1",
+        "life": "3,000K",
+        "code": "A9VEM33F00",
+        "page_key": "P49-30"
+      },
+      {
+        "name": "Fusing temperature sensor/3 (TH3)",
+        "qty": "1",
+        "life": "3,000K",
+        "code": "A50UR70F00",
+        "page_key": "P48-15"
+      },
+      {
+        "name": "Fusing temperature sensor/4 (TH4)",
+        "qty": "1",
+        "life": "3,000K",
+        "code": "A50UR70E22",
+        "page_key": "P45-6"
+      }
+    ]
+  },
+  {
+    "name": "Charge control section",
+    "items": [
+      {
+        "name": "Charging roller bearing/Fr",
+        "qty": "1",
+        "life": "3,150K",
+        "code": "A1RF508900",
+        "page_key": "P109-5"
+      },
+      {
+        "name": "Charging roller bearing/Rr",
+        "qty": "1",
+        "life": "3,150K",
+        "code": "A85C897201",
+        "page_key": "P109-17"
+      }
+    ]
+  },
+  {
+    "name": "Intermediate transfer section",
+    "items": [
+      {
+        "name": "Transfer roller bearing/Y, /M, /C",
+        "qty": "6",
+        "life": "3,520K",
+        "code": "65AA26380",
+        "page_key": "P39-3"
+      },
+      {
+        "name": "Transfer roller bearing/K",
+        "qty": "2",
+        "life": "3,520K",
+        "code": "A50U505700",
+        "page_key": "P39-15"
+      }
+    ]
+  }
+]

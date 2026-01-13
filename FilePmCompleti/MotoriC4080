@@ -1,0 +1,43 @@
+motor_id,part_code,description,section,page,key
+M1,A50UR72600,Drive Motor / 1 Assy,Duplex Section,91,44
+M2,A85CM10200,DC Brushless motor /20,Drum Driving Section,77,13
+M3,A85CM10200,DC Brushless motor /20,Drum Driving Section,78,13
+M4,A85CN19100,Drive Wiring /K,Drum Driving Section,79,15
+M5,A7PUM11000,brushless M otor / 20,Toner Collection Driving Section,35,20
+M6,A7PUM11000,brushless M otor / 20,Toner Collection Driving Section,35,20
+M7,A7PUM11000,brushless M otor / 20,Toner Collection Driving Section,35,20
+M8,A7PUM11000,brushless M otor / 20,Toner Collection Driving Section,35,20
+M9,A85CR70R33,Drive Plate A ssy (S/No.ACC2xxx010001,Intermediate Transfer Section,36,4
+M10,AC57M10300,DC Brushless Mo tor / 25,Intermediate Transfer Section,38,9
+M11,A7PUM11100,brushless M otor /3 0 C,Paper Feed Driving Section,74,4
+M12,A7PUM11100,brushless M otor /3 0 C,Paper Feed Driving Section,74,4
+M13,466076020,Paper Feed F eedin g Bearing B,Toner Collection Driving Section,35,2
+M14,A7PUM11000,brushless M otor / 20,Toner Collection Driving Section,35,20
+M15,A7PUM11100,brushless Mot or /30,Toner Supply Section,31,6
+M16,A00JM12100,Stepping moto r,Toner Supply Section,30,3
+M17,A00JM12100,Stepping moto r,Toner Supply Section,30,3
+M18,A00JM12100,Stepping moto r,Toner Supply Section,30,3
+M19,A00JM12100,Stepping moto r,Toner Supply Section,30,3
+M25,AC57M10300,DC Brushless Mo tor / 25,Intermediate Transfer Section,38,9
+M28,A2X0M12101,Brush motor,Tray Driving Section,75,7
+M29,A2X0M12101,Brush motor,Tray Driving Section,75,7
+M30,A7PUM11100,brushless Mot or /30,Toner Supply Section,31,6
+M31,65AA80112,HB Motor /50 B,Duplex Section,88,4
+M32,AC57R71800,Stepping Motor / 1 A SSY,Duplex Section,93,40
+M33,AC57N22000,Drive Relay Ha rness /3 D,Duplex Section,93,2
+M34,A50UR72600,Drive Motor / 1 Assy,Duplex Section,93,41
+M35,A50U883600,Guide /1,Duplex Section,91,37
+M36,A50UR72600,Drive Motor / 1 Assy,Duplex Section,91,44
+M37,A50UR72722,Drive Motor / 1 Assy,Reverse Section,100,32
+M38,65AA80112,HB Motor /50 B,Duplex Section,88,4
+M39,AC57R71500,Stepping Motor / 2 A SSY,Duplex Section,93,39
+M40,AC57R71800,Stepping Motor / 1 A SSY,Duplex Section,93,40
+M41,65AA80112,HB Motor /50 B,Duplex Section,95,5
+M42,65AA80112,HB Motor /50 B,Resist Section,102,4
+M43,65AA80112,HB Motor /50 B,Duplex Section,88,4
+M44,65AA80112,HB Motor /50 B,Duplex Section,88,4
+M45,65AA80112,HB Motor /50 B,Duplex Section,88,4
+M46,A50U732100,Protection Seal / 1 D,Fusing Section,44,10
+M47,A9VE743000,Pressure Gear /3 23/85T,Fusing Section,43,29
+M48,AC57R71700,Stepping Motor ASSY,Duplex Section,84,48
+M201,AC57M10A00,Stepping Motor,Scanner Section,19,22

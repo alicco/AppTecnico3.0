@@ -1,0 +1,9 @@
+--- Page 161 Analysis ---
+SENSOR: 'PS35' at (556.3, 186.0)
+  Nearest keys: [('20', 29.415290844202442), ('11', 224.213851484655)]
+SENSOR: 'PS36' at (557.6, 426.8)
+  Nearest keys: [('11', 18.1690115922797), ('20', 264.791407359276)]
+
+--- List Page 162 Snippet (Keys 11, 20) ---
+11 9335140071 Solid State Switch 反射型フォトスイッチ B 1
+20 A50UM51000 Photointerrupter 透過型センサ C 1

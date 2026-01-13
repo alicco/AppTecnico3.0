@@ -1,0 +1,20 @@
+--- Detected Links on Diagram ---
+Sensor: PS6 -> Key: 3 (Dist: 25.62)
+Sensor: PS7 -> Key: 15 (Dist: 19.43)
+
+--- List Page Content (First 20 lines text) ---
+Duplex Section Page. 99
+Key Part No. Description Destinations Class QTY Standard parts
+1 4470402401 Stopper ストッパー D 2 a-V234201650
+2 65AA80112 HB Motor /50 ＨＢ モータ／５０ B 1 b-V118030403
+3 9335140071 Solid State Switch 反射型フォトスイッチ B 2 c-V118030603
+d-V118033003
+4 A00V240600 Ball Bearing ボールベアリング B 2 e-V121030403
+5 A03U842700 Conveyance Spring /3 搬送ばね／３ C 6 f-V121030803
+6 A03U842800 Conveyance Spring /4 搬送ばね／４ C 4 g-V217030003
+7 A03U845601 Idler Roller /2 従動ローラ／２ C 3 h-V217040003
+8 A03U845902 Idler Rol
+
+--- Matching Keys ---
+MATCH for PS6 (Key 3): 3 9335140071 Solid State Switch 反射型フォトスイッチ B 2 c-V118030603
+MATCH for PS7 (Key 15): 15 A50U850201 Mounting Plate /F 取付板／Ｆ D 1

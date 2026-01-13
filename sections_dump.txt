@@ -1,0 +1,210 @@
+
+
+=== C7100 PAGE 2 & 3 ===
+
+--- Page 2 ---
+CONTENTS
+No. DESCRIPTION 名称 PAGE No.
+1 External Parts Section 外装部 P1 P2 P3 P4
+2 Main Frame Section 骨格部 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
+3 Operation Panel Section 操作部 P15 P16 P17 P18
+4 Write Section 書き込み部 P19
+5 Process Carriage Section プロセス架台部 P20 P21 P22 P23 P24 P25 P26 P27 P28
+6 Charging Section 帯電部 P29
+7 Photo Conductor Section 感光体部 P30
+8 Developing Section 現像部 P31 P32
+9 Toner Supply Section ト ナー補給部 P33 P34 P35 P36 P37 P38 P39
+10 Toner Collection Section ト ナー回収部 P40 P41
+11 Toner Collection Driving Section ト ナー回収駆動部 P42 P43
+12 Intermediate Transfer Section 中間転写部 P44 P45 P46 P47 P48 P49 P50 P51
+13 Color Resist Section 画像補正部 P52
+P53 P54 P55 P56 P57 P58 P59 P60 P61
+14 Fusing Section 定着部
+P62
+15 Tray Section ト レ イ部 P63 P64 P65 P66
+16 Tray Paper Feed Section ト レ イ給紙部 P67 P68 P69 P70
+17 Paper Feed Driving Section 給紙駆動部 P71
+18 Tray Driving Section ト レ イ駆動部 P72
+19 Drum Driving Section ドラ ム駆動部 P73 P74 P75 P76 P77
+20 Vertical Conveyance Section 垂直搬送部 P78 P79 P80
+21 Duplex Carriage Section 両面架台部 P81 P82
+P83 P84 P85 P86 P87 P88 P89 P90 P91
+22 Duplex Section 両面部 P92 P93 P94 P95 P96 P97 P98 P99
+P100 P101 P102 P103
+P104 P105 P106 P107 P108 P109 P110
+23 Resist Section レジスト 部
+P111
+24 Secondary Transfer Section ２次転写 P112 P113 P114
+25 Duplex Swing Section 両面揺動部 P115 P116
+26 Reverse Section 反転部 P117 P118 P119 P120 P121 P122
+27 Exit Section 排紙部 P123 P124 P125 P126
+28 Charge Control Section 電荷制御部 P127 P128 P129 P130
+29 Rear Electrical Section 背面電気部 P131 P132 P133 P134 P135 P136
+30 Wiring 束線 P137 P138 P139
+31 Wiring Accessories 配線部品 P140 P141
+32 Service Tool サービスツール P142
+33 Accessory Parts 同梱部品 P143 P144
+AccurioPress C7100
+--- Page 3 ---
+External Parts Section
+P 1
+h 34
+3
+b e
+A
+h
+d 26
+e
+20 37
+h
+15
+k 9 23 38 C
+18
+A
+29 d
+12
+24
+33 g h 10
+13
+9 h 35 11 e
+e D
+h 4 B a
+k 27
+25 5
+h c 1
+h
+22
+7 f
+21
+k m
+m
+k
+C f
+6
+2
+14
+k
+36 39
+19 32 8
+B f
+30
+31
+28
+17
+16
+D
+AccurioPress C7100
+
+=== C12000 PAGE 2 & 3 ===
+
+--- Page 2 ---
+CONTENTS
+No. DESCRIPTION 名称 PAGE No.
+1 External Parts 外装 P1 P2 P3
+P4 P5 P6 P7 P8 P9 P10 P11 P12 P13
+2 Main Frame 骨格
+P14 P15 P16 P17 P18 P19
+3 Operation Panel Section 操作部 P20 P21 P22
+4 Write Section 書き込み部 P23
+5 Charging Section 帯電部 P24 P25 P26 P27
+6 Developing Section 現像部 P28 P29 P30 P31
+7 Toner Supply Section (1/2) ト ナー補給部 （１ ／２） P32 P33 P34 P35 P36
+8 Toner Collection Section ト ナー回収部 P37 P38 P39
+P40 P41 P42 P43 P44 P45 P46 P47 P48
+9 Intermediate Transfer Section 中間転写部
+P49 P50
+P51 P52 P53 P54 P55 P56 P57 P58 P59
+10 Fusing Section 定着部 P60 P61 P62 P63 P64 P65 P66 P67 P68
+P69
+P70 P71 P72 P73 P74 P75 P76 P77 P78
+11 Process Carriage Section プロセス架台部
+P79 P80 P81 P82 P83
+12 Secondary Transfer Section ２次転写部? P84 P85 P86 P87 P88 P89
+13 Toner Collection Driving Section ト ナー回収駆動部 P90
+14 Drum Driving Section ドラ ム駆動部 P91 P92 P93 P94 P95 P96 P97 P98 P99
+P100 P101 P102 P103 P104 P105 P106
+15 Toner Supply Section (2/2) ト ナー補給部 （２ ／２）
+P107
+16 Intermediate Transfer Belt Driving Section 中間転写ベルト 駆動部 P108 P109
+17 Vertical Conveyance Section 垂直搬送部 P110
+18 Adu Carriage ADU架台 P111 P112
+P113 P114 P115 P116 P117 P118 P119
+19 Adu Duplex Section ADU 両面部 P120 P121 P122 P123 P124 P125 P126
+P127 P128 P129 P130 P131 P132
+P133 P134 P135 P136 P137 P138 P139
+20 Adu Duplex Section ADU 両面部
+P140 P141
+21 Adu Swing Section ADU 揺動部 P142 P143
+22 Adu Reverse And Exit Section ADU 反転／排紙部 P144 P145 P146
+23 Adu Resist Section ADU レジスト 部 P147 P148 P149 P150 P151
+24 Reverse And Exit Section 反転／排紙部 P152 P153 P154 P155 P156
+25 Electrical Section 電気部 P157 P158
+26 Rear Electrical Section 背面電気部 P159 P160 P161 P162 P163
+27 Wiring 束線 P164 P165 P166
+28 Service Tool サービスツール P167 P168
+29 Accessory Parts 同梱部品 P169 P170
+AccurioPress C12000
+--- Page 3 ---
+External Parts
+15 2 P 1
+2 15
+34
+c
+25 34 A 18
+c 34
+28
+A g
+e a 38
+3 16 h PS19
+22 e f
+e e
+e
+m 31
+30
+5 25
+C
+34
+e See P.169
+17 e 34
+16 g See P.169
+B
+e 4 B 30 33
+a m
+3 5 16 33
+e
+m e 38 f c 33
+e 39 f 32
+37 33
+e 16
+e
+26 31
+8
+29 D
+23
+6
+e f
+C
+35 32
+9 k g 4 36 E
+27 e 26 d
+h
+14
+n 21 35
+See P.169 7 d
+7 e
+24 c
+19
+e
+D
+6 See P.169
+10
+6
+E
+1
+g
+See P.169
+11
+See P.169 20 e 13
+See P.169
+12
+AccurioPress C12000

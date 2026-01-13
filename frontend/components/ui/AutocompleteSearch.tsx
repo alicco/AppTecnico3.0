@@ -138,6 +138,7 @@ export function AutocompleteSearch({
                     slotProps={{
                         input: {
                             ...params.InputProps,
+                            style: { fontSize: '1.4rem', padding: '12px', minWidth: '500px' },
                             startAdornment: (
                                 <>
                                     <SearchIcon color="action" sx={{ mr: 1 }} />

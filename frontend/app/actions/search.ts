@@ -2,7 +2,7 @@
 
 import { supabase } from '@/lib/supabase';
 
-const API_URL = process.env.API_URL || 'http://127.0.0.1:8080/api';
+const API_URL = process.env.API_URL || 'http://127.0.0.1:8000/api';
 
 export async function getPrinters() {
     try {
@@ -115,6 +115,33 @@ export async function getDipSwitches(modelName: string) {
         return (await res.json()) as DipSwitch[];
     } catch (e) {
         console.error('Fetch dipswitches failed', e);
+        return [];
+    }
+}
+
+export interface ManualSparePart {
+    model: string;
+    section_name: string;
+    page_number: string;
+    ref_number: string;
+    part_code: string;
+    name: string;
+    quantity: string;
+    similarity?: number;
+}
+
+export async function searchSpareParts(modelName: string, query: string, fuzzy: boolean = false) {
+    try {
+        const params = new URLSearchParams({
+            model: modelName,
+            q: query,
+            fuzzy: fuzzy.toString()
+        });
+        const res = await fetch(`${API_URL}/parts?${params.toString()}`, { cache: 'no-store' });
+        if (!res.ok) return [];
+        return (await res.json()) as ManualSparePart[];
+    } catch (e) {
+        console.error('Fetch parts failed', e);
         return [];
     }
 }

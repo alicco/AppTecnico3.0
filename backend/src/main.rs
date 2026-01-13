@@ -13,8 +13,11 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod handlers;
 mod models;
 
+use std::collections::HashSet;
+
 pub struct AppState {
     pub db: sqlx::PgPool,
+    pub priority_parts: HashSet<String>,
 }
 
 #[tokio::main]
@@ -42,6 +45,12 @@ async fn main() {
                 panic!("Database connection failed");
             }
         };
+
+    // Migration - Enable pg_trgm extension for fuzzy text matching
+    sqlx::query(r#"CREATE EXTENSION IF NOT EXISTS pg_trgm;"#)
+        .execute(&pool)
+        .await
+        .expect("Failed to enable pg_trgm extension");
 
     // Migration
     sqlx::query(r#"
@@ -96,8 +105,15 @@ async fn main() {
 
     // Redis Removed per user request
 
+    // Load Priority Parts
+    let priority_parts_path = "priority_parts.json";
+    let priority_string = std::fs::read_to_string(priority_parts_path).unwrap_or_else(|_| "[]".to_string());
+    let priority_list: Vec<String> = serde_json::from_str(&priority_string).unwrap_or_default();
+    let priority_set: std::collections::HashSet<String> = priority_list.into_iter().collect();
+
     let state = Arc::new(AppState {
         db: pool,
+        priority_parts: priority_set,
     });
 
     let app = Router::new()
@@ -107,6 +123,9 @@ async fn main() {
         .route("/api/import", post(handlers::import_data))
         .route("/api/import-dipsw", post(handlers::import_dipsw))
         .route("/api/dipswitches", get(handlers::get_dipswitches))
+        .route("/api/parts", get(handlers::search_parts))
+        .route("/api/parts/sections", get(handlers::get_model_sections))
+        .route("/api/maintenance", get(handlers::get_maintenance_parts))
         .layer(DefaultBodyLimit::max(50 * 1024 * 1024)) // 50MB limit
         .layer(CorsLayer::permissive())
         .with_state(state);

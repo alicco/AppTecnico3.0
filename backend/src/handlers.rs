@@ -5,8 +5,8 @@ use axum::{
 };
 use std::sync::Arc;
 use crate::{AppState, models::{Printer, ErrorCode, SparePart}};
-use serde::Deserialize;
-use sqlx::types::Uuid;
+use serde::{Deserialize, Serialize};
+use sqlx::{types::Uuid, FromRow};
 use std::io::Cursor;
 use calamine::{Reader, Xlsx};
 
@@ -332,4 +332,278 @@ pub async fn get_dipswitches(
         .unwrap_or_default();
         
     Json(switches)
+}
+
+#[derive(Deserialize)]
+pub struct SearchPartsParams {
+    pub model: Option<String>,
+    pub q: Option<String>,
+    pub section: Option<String>,
+    pub limit: Option<i32>,
+    #[serde(default)]
+    pub fuzzy: bool,
+}
+
+fn get_equivalent_models(model: &str) -> Vec<String> {
+    let m = model.to_uppercase();
+    // Normalize: Remove "Konica Minolta" etc
+    let clean = m.replace("KONICA MINOLTA ", "").replace("KONICAMINOLTA ", "").trim().to_string();
+
+    let mut models = vec![clean.clone()];
+
+    // Equivalency Logic
+    // C4080 Group
+    if clean == "C4065" || clean == "C4070" || clean == "C4080" {
+        if clean != "C4080" { models.push("C4080".to_string()); }
+        if clean != "C4070" { models.push("C4070".to_string()); }
+        if clean != "C4065" { models.push("C4065".to_string()); }
+    }
+    // C7100 Group
+    else if clean == "C7090" || clean == "C7100" {
+        if clean != "C7100" { models.push("C7100".to_string()); }
+        if clean != "C7090" { models.push("C7090".to_string()); }
+    }
+    // C12000 Group
+    else if clean == "C14000" || clean == "C12000" {
+         if clean != "C12000" { models.push("C12000".to_string()); }
+         if clean != "C14000" { models.push("C14000".to_string()); }
+    }
+    // C6100 Group
+    else if clean == "C6085" || clean == "C6100" {
+        if clean != "C6100" { models.push("C6100".to_string()); }
+        if clean != "C6085" { models.push("C6085".to_string()); }
+    }
+    // C12010 Group
+    else if clean == "C14010" || clean == "C10500" || clean == "C12010" {
+        if clean != "C12010" { models.push("C12010".to_string()); }
+        if clean != "C14010" { models.push("C14010".to_string()); }
+        if clean != "C10500" { models.push("C10500".to_string()); }
+    }
+    // C5080 Group (C5080 is main for C5070 and C5065 ? Assuming C5080 exists in DB)
+    else if clean == "C5070" || clean == "C5065" || clean == "C5080" {
+         if clean != "C5080" { models.push("C5080".to_string()); }
+         if clean != "C5070" { models.push("C5070".to_string()); }
+         if clean != "C5065" { models.push("C5065".to_string()); }
+    }
+
+    models
+}
+
+#[derive(Serialize, FromRow)]
+pub struct SectionRow {
+    pub section_name: String,
+}
+
+pub async fn get_model_sections(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<SearchPartsParams>,
+) -> Json<Vec<String>> {
+    let model_str = params.model.unwrap_or_default();
+    if model_str.is_empty() {
+        return Json(vec![]);
+    }
+    let models = get_equivalent_models(&model_str);
+    let sql = "SELECT DISTINCT section_name FROM manual_spare_parts WHERE UPPER(model) = ANY($1) ORDER BY section_name";
+    
+    let sections = sqlx::query_as::<_, SectionRow>(sql)
+        .bind(&models)
+        .fetch_all(&state.db)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to fetch sections: {:?}", e);
+            e
+        })
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| r.section_name)
+        .collect();
+        
+    Json(sections)
+}
+
+pub async fn search_parts(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<SearchPartsParams>,
+) -> Json<Vec<crate::models::ManualSparePart>> {
+    
+    let mut sql = String::from(r#"
+        SELECT 
+            model, 
+            section_name, 
+            page_number, 
+            ref_number, 
+            part_code, 
+            name, 
+            quantity,
+            NULL::real as similarity
+        FROM manual_spare_parts 
+        WHERE 1=1
+    "#);
+    
+    let mut args_count = 0;
+    let mut query_q = String::new();
+    let mut models_vec: Vec<String> = vec![];
+
+    // MODEL FILTER (Optional)
+    if let Some(ref m) = params.model {
+        if !m.is_empty() {
+            models_vec = get_equivalent_models(m);
+            args_count += 1;
+            sql.push_str(&format!(" AND UPPER(model) = ANY(${})", args_count));
+        }
+    }
+
+    // SECTION FILTER
+    if let Some(ref section) = params.section {
+        if !section.is_empty() {
+            args_count += 1;
+            sql.push_str(&format!(" AND LOWER(section_name) = LOWER(${})", args_count));
+        }
+    }
+
+    // TEXT SEARCH - STRICT STARTS WITH
+    if let Some(ref q) = params.q {
+        if !q.trim().is_empty() {
+            args_count += 1;
+            sql.push_str(&format!(" AND part_code ILIKE ${}", args_count));
+            query_q = format!("{}%", q.trim().to_uppercase()); // Uppercase query for case-insensitive prefix match
+        }
+    }
+
+    sql.push_str(" ORDER BY part_code ASC");
+    
+    let limit = params.limit.unwrap_or(500); // Higher limit for section views
+    args_count += 1;
+    sql.push_str(&format!(" LIMIT ${}", args_count));
+
+    let mut query = sqlx::query_as::<_, crate::models::ManualSparePart>(&sql);
+    
+    // Bind model filter if present
+    if !models_vec.is_empty() {
+        query = query.bind(&models_vec);
+    }
+
+    if let Some(ref section) = params.section {
+        if !section.is_empty() {
+            query = query.bind(section);
+        }
+    }
+    
+    if let Some(ref q) = params.q {
+        if !q.trim().is_empty() {
+             query = query.bind(&query_q);
+        }
+    }
+
+    query = query.bind(limit);
+
+    let mut parts = query
+        .fetch_all(&state.db)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to search parts: {:?}", e);
+            e
+        })
+        .unwrap_or_default();
+    
+    // Sort by Priority
+    parts.sort_by(|a, b| {
+        let a_prio = state.priority_parts.contains(&a.part_code);
+        let b_prio = state.priority_parts.contains(&b.part_code);
+        b_prio.cmp(&a_prio) // Priority first
+    });
+
+    Json(parts)
+}
+
+// Maintenance Parts Endpoint
+#[derive(Serialize, Deserialize)]
+pub struct MaintenanceSection {
+    pub name: String,
+    pub items: Vec<MaintenanceItem>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MaintenanceItem {
+    pub code: String,
+    pub name: String,
+    pub qty: String,
+    pub life: String,
+    pub page_key: String,
+}
+
+pub async fn get_maintenance_parts(
+    State(state): State<Arc<AppState>>,
+) -> Json<Vec<MaintenanceSection>> {
+    // Read the maintenance.json file (relative to working directory)
+    let json_path = "maintenance.json";
+    let json_content = match std::fs::read_to_string(json_path) {
+        Ok(content) => content,
+        Err(e) => {
+            tracing::error!("Failed to read maintenance.json from path '{}': {:?}", json_path, e);
+            return Json(vec![]);
+        }
+    };
+    
+    let sections: Vec<MaintenanceSection> = match serde_json::from_str(&json_content) {
+        Ok(s) => s,
+        Err(_) => return Json(vec![]),
+    };
+    
+    // Extract all codes
+    let mut all_codes: Vec<String> = vec![];
+    for section in &sections {
+        for item in &section.items {
+            all_codes.push(item.code.clone());
+        }
+    }
+    
+    // Query DB for these codes
+    let query = format!(
+        "SELECT part_code, model, section_name, page_number, ref_number, name, quantity 
+         FROM manual_spare_parts 
+         WHERE part_code = ANY($1)"
+    );
+    
+    let db_parts: Vec<crate::models::ManualSparePart> = sqlx::query_as(&query)
+        .bind(&all_codes)
+        .fetch_all(&state.db)
+        .await
+        .unwrap_or_default();
+    
+    // Build a map for quick lookup
+    use std::collections::HashMap;
+    let mut db_map: HashMap<String, crate::models::ManualSparePart> = HashMap::new();
+    for part in db_parts {
+        db_map.insert(part.part_code.clone(), part);
+    }
+    
+    // Enrich sections with DB data
+    let mut enriched_sections = vec![];
+    for section in sections {
+        let mut enriched_items = vec![];
+        for item in section.items {
+            // Check if we have DB data for this code
+            if let Some(db_part) = db_map.get(&item.code) {
+                // Use DB data (more accurate)
+                enriched_items.push(MaintenanceItem {
+                    code: db_part.part_code.clone(),
+                    name: db_part.name.clone(),
+                    qty: item.qty, // Keep maintenance qty (usage qty)
+                    life: item.life, // Keep life from Excel
+                    page_key: format!("{}-{}", db_part.page_number, db_part.ref_number),
+                });
+            } else {
+                // Keep original if not in DB
+                enriched_items.push(item);
+            }
+        }
+        
+        enriched_sections.push(MaintenanceSection {
+            name: section.name,
+            items: enriched_items,
+        });
+    }
+    
+    Json(enriched_sections)
 }

@@ -1,0 +1,94 @@
+model,part_id,part_code,description,section,key,page
+C12000,PS001,A50UM51000,Photointerrupter,External Parts,9,4
+C12000,PS002,AC0C115400,Sensor Coil Spring /R,External Parts,23,4
+C12000,PS003,A85CM55600,Photo Sensor,Intermediate Transfer Section,17,50
+C12000,PS004,AC0C507700,Sensor Plate /Rear,Intermediate Transfer Section,26,50
+C12000,PS006,AC0CM50200,Photointerrupter /S,Adu Duplex Section ADU,13,140
+C12000,PS007,13QA85521,Sensor /2,Adu Carriage ADU,1,114
+C12000,PS009,A85CM55600,Photo Sensor,Adu Duplex Section ADU,18,121
+C12000,PS010,A85CM55600,Photo Sensor,Adu Duplex Section ADU,12,135
+C12000,PS011,13QA85511,Conveyance Photo Sensor,Adu Carriage ADU,2,115
+C12000,PS015,13QA85511,Conveyance Photo Sensor,Adu Duplex Section ADU,1,137
+C12000,PS016,13QA85511,Conveyance Photo Sensor,Adu Duplex Section ADU,1,137
+C12000,PS017,13QA85511,Conveyance Photo Sensor,Adu Duplex Section ADU,2,135
+C12000,PS018,A85CM55600,Photo Sensor,Toner Collection Section,4,45
+C12000,PS020,AC0CR77700,Compensating Sensor Assy,Adu Resist Section ADU,15,150
+C12000,PS021,A85CM55600,Photo Sensor,Developing Section,4,28
+C12000,PS022,A85CM55600,Photo Sensor,Developing Section,4,28
+C12000,PS023,A85CM55600,Photo Sensor,Developing Section,4,29
+C12000,PS024,A85CM55600,Photo Sensor,Developing Section,4,29
+C12000,PS025,A85CM55600,Photo Sensor,Developing Section,4,30
+C12000,PS026,A85CM55600,Photo Sensor,Developing Section,4,30
+C12000,PS027,A85CM55600,Photo Sensor,Developing Section,4,31
+C12000,PS028,A85CM55600,Photo Sensor,Developing Section,4,31
+C12000,PS031,A50UM51000,Photointerrupter,External Parts,5,3
+C12000,PS032,A85CM55600,Photo Sensor,Fusing Section,5,72
+C12000,PS033,A85CM55600,Photo Sensor,Fusing Section,7,73
+C12000,PS034,A85CM55600,Photo Sensor,Fusing Section,5,75
+C12000,PS035,A85CM55600,Photo Sensor,Fusing Section,7,76
+C12000,PS036,A85CM55600,Photo Sensor,Fusing Section,5,78
+C12000,PS037,A85CM55600,Photo Sensor,Process Carriage Section,7,79
+C12000,PS038,A85CM55600,Photo Sensor,Process Carriage Section,5,81
+C12000,PS039,A85CM55600,Photo Sensor,Process Carriage Section,7,82
+C12000,PS042,A50UM51000,Photointerrupter,Reverse And Exit Section,2,152
+C12000,PS043,A85CM55600,Photo Sensor,Toner Collection Section,2,43
+C12000,PS044,A85CM55600,Photo Sensor,Toner Collection Section,2,43
+C12000,PS045,A85CM55600,Photo Sensor,Intermediate Transfer Section,27,49
+C12000,PS046,65AA-9091E,Sensor Board Assy,Intermediate Transfer Belt Driving Section,1,109
+C12000,PS047,65AA-9091E,Sensor Board Assy,Intermediate Transfer Belt Driving Section,1,109
+C12000,PS049,A85CM55600,Photo Sensor,Adu Duplex Section ADU,3,127
+C12000,PS050,A85CM55600,Photo Sensor,Adu Duplex Section ADU,3,127
+C12000,PS052,13QA85511,Conveyance Photo Sensor,Adu Duplex Section ADU,1,128
+C12000,PS053,13QA85511,Conveyance Photo Sensor,Adu Duplex Section ADU,1,129
+C12000,PS054,13QA85511,Conveyance Photo Sensor,Adu Duplex Section ADU,1,129
+C12000,PS055,13QA85511,Conveyance Photo Sensor,Adu Duplex Section ADU,1,128
+C12000,PS056,A85CM55600,Photo Sensor,Fusing Section,17,69
+C12000,PS057,A85CM55600,Photo Sensor,Intermediate Transfer Section,20,51
+C12000,PS058,A85CM55600,Photo Sensor,Intermediate Transfer Section,20,51
+C12000,PS059,A85CM55600,Photo Sensor,Intermediate Transfer Section,20,51
+C12000,PS060,A85CM55600,Photo Sensor,Adu Swing Section ADU,26,143
+C12000,PS061,A85CM55600,Photo Sensor,Intermediate Transfer Section,7,59
+C12000,PS062,A85CM55600,Photo Sensor,Fusing Section,8,63
+C12000,PS063,A03TM50000,Photoreflector,Fusing Section,3,62
+C12000,PS064,A85CM55600,Photo Sensor,Drum Driving Section,12,93
+C12000,PS065,A85CM55600,Photo Sensor,Drum Driving Section,12,93
+C12000,PS066,A85CM55600,Photo Sensor,Drum Driving Section,12,95
+C12000,PS067,A85CM55600,Photo Sensor,Drum Driving Section,12,95
+C12000,PS068,A85CM55600,Photo Sensor,Drum Driving Section,12,97
+C12000,PS069,A85CM55600,Photo Sensor,Drum Driving Section,12,97
+C12000,PS070,A85CM55600,Photo Sensor,Drum Driving Section,12,99
+C12000,PS071,A85CM55600,Photo Sensor,Drum Driving Section,12,99
+C12000,PS074,A85CM55600,Photo Sensor,Drum Driving Section,13,93
+C12000,PS075,A85CM55600,Photo Sensor,Drum Driving Section,13,95
+C12000,PS076,A85CM55600,Photo Sensor,Drum Driving Section,13,97
+C12000,PS077,A85CM55600,Photo Sensor,Drum Driving Section,13,99
+C12000,PS079,A85CM55600,Photo Sensor,Adu Reverse And Exit Section ADU,17,144
+C12000,PS081,A50UM51000,Photointerrupter,Toner Collection Section,17,38
+C12000,PS082,A50UM51000,Photointerrupter,Toner Collection Section,17,38
+C12000,PS083,A50UM51000,Photointerrupter,External Parts,7,5
+C12000,PS084,A85CM55600,Photo Sensor,Intermediate Transfer Section,9,55
+C12000,PS085,AC0CR71300,Exit Sensor Assy,Adu Resist Section ADU,14,150
+C12000,PS088,A85CM55600,Photo Sensor,Adu Resist Section ADU,10,148
+C12000,PS089,A85CM55600,Photo Sensor,Adu Resist Section ADU,11,147
+C12000,PS090,13QA85511,Conveyance Photo Sensor,Adu Resist Section ADU,1,149
+C12000,PS091,13QA85511,Conveyance Photo Sensor,Adu Resist Section ADU,1,149
+C12000,PS092,A85CM55600,Photo Sensor,Adu Duplex Section ADU,11,120
+C12000,PS093,A85CM55600,Photo Sensor,Adu Resist Section ADU,11,147
+C12000,PS094,A85CM55600,Photo Sensor,Intermediate Transfer Section,13,53
+C12000,PS095,A85CM55600,Photo Sensor,Intermediate Transfer Section,13,53
+C12000,PS096,A85CM55600,Photo Sensor,Intermediate Transfer Section,11,57
+C12000,PS097,A85CM55600,Photo Sensor,Intermediate Transfer Section,11,57
+C12000,PS098,A85CM55600,Photo Sensor,Intermediate Transfer Section,11,57
+C12000,PS099,A85CM55600,Photo Sensor,Secondary Transfer Section,11,85
+C12000,PS100,A85CM55600,Photo Sensor,Secondary Transfer Section,5,86
+C12000,PS101,A85CM55600,Photo Sensor,Secondary Transfer Section,5,86
+C12000,PS102,A85CM55600,Photo Sensor,Secondary Transfer Section,5,86
+C12000,PS103,A85CM55600,Photo Sensor,Adu Duplex Section ADU,15,132
+C12000,PS104,A85CM55600,Photo Sensor,Adu Duplex Section ADU,15,132
+C12000,PS105,13QA85511,Conveyance Photo Sensor,Reverse And Exit Section,1,152
+C12000,PS106,A85CM55600,Photo Sensor,Adu Duplex Section ADU,11,125
+C12000,PS107,A85CM55600,Photo Sensor,Adu Duplex Section ADU,11,125
+C12000,PS108,A85CM55600,Photo Sensor,Adu Duplex Section ADU,7,130
+C12000,PS109,ACCXM50100,Detection Sensor /E,Adu Duplex Section ADU,13,128
+C12000,PS110,A85CM55600,Photo Sensor,Intermediate Transfer Section,7,59
+C12000,PS122,A85CM55600,Photo Sensor,Adu Duplex Section ADU,3,127

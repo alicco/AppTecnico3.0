@@ -61,3 +61,16 @@ pub struct DipSwitch {
     pub setting_1: Option<String>,
     pub default_val: Option<String>,
 }
+
+#[derive(Serialize, Deserialize, FromRow, Debug)]
+pub struct ManualSparePart {
+    pub model: String,
+    pub section_name: String,
+    pub page_number: String,
+    pub ref_number: String,
+    pub part_code: String,
+    pub name: String,
+    pub quantity: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub similarity: Option<f64>,
+}

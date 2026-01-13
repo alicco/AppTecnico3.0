@@ -176,7 +176,7 @@ export function PartSearchAutocomplete({
                         slotProps={{
                             input: {
                                 ...params.InputProps,
-                                style: { fontSize: '1.2rem', padding: '10px', minWidth: '800px' }, // Larger and wider
+                                style: { fontSize: '1.2rem', padding: '10px', width: '100%' }, // Larger and wider
                                 startAdornment: (
                                     <>
                                         <SearchIcon color="action" sx={{ mr: 1 }} />

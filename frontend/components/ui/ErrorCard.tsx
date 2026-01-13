@@ -341,7 +341,7 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                     background: `linear-gradient(45deg, ${alpha(theme.palette.primary.main, 0.05)}, transparent)`
                 }}
             >
-                <Typography variant="h4" fontWeight={800} color="primary" sx={{ letterSpacing: -0.5 }}>
+                <Typography variant="h4" fontWeight={800} color="primary" sx={{ letterSpacing: -0.5, whiteSpace: 'nowrap', fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
                     {error.code}
                 </Typography>
                 <Chip
@@ -541,7 +541,7 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                                                         sx={{ width: 64, height: 64, borderRadius: 1, objectFit: 'cover' }}
                                                     />
                                                 )}
-                                                <Box flex={1}>
+                                                <Box flex={1} minWidth={0}>
                                                     <Typography variant="subtitle2" color="secondary" fontFamily="monospace" fontWeight="bold">
                                                         {part.oem_code}
                                                     </Typography>

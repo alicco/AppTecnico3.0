@@ -562,7 +562,7 @@ export default function Home() {
                               setPartResults([]);
                             }}
                             variant="outlined"
-                            sx={{ minWidth: '400px' }}
+                            sx={{ width: '100%' }}
                             InputProps={{
                               style: { fontSize: '1.2rem' }
                             }}
@@ -587,7 +587,7 @@ export default function Home() {
                             onChange={(e) => setPartSection(e.target.value)}
                             disabled={!selectedModel}
                             variant="outlined"
-                            sx={{ minWidth: '400px' }}
+                            sx={{ width: '100%' }}
                             InputProps={{
                               style: { fontSize: '1.2rem' }
                             }}

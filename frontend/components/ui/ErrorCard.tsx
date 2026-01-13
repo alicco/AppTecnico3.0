@@ -7,7 +7,10 @@ import {
     Stack,
     Grid,
     useTheme,
-    alpha
+    alpha,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails
 } from '@mui/material';
 import {
     Warning as WarningIcon,
@@ -15,7 +18,8 @@ import {
     Info as InfoIcon,
     Build as BuildIcon,
     Construction as ConstructionIcon,
-    Settings as SettingsIcon
+    Settings as SettingsIcon,
+    ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useState, ReactElement } from 'react';
 import { SparePartsSearch } from './SparePartsSearch';
@@ -357,43 +361,55 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                 />
             </Box>
 
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Stack spacing={3}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Stack spacing={2}>
                     {error.cause && (
-                        <Box display="flex" gap={2}>
-                            <WarningIcon color="warning" sx={{ mt: 0.5 }} />
-                            <Box>
-                                <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" textTransform="uppercase" gutterBottom>
-                                    Cause
-                                </Typography>
-                                <Typography variant="body1" color="text.primary" component="div">
+                        <Accordion defaultExpanded disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Box display="flex" gap={1.5} alignItems="center">
+                                    <WarningIcon color="warning" fontSize="small" />
+                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
+                                        Cause
+                                    </Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Typography variant="body1" color="text.primary">
                                     {renderLinkedText(error.cause)}
                                 </Typography>
-                            </Box>
-                        </Box>
+                            </AccordionDetails>
+                        </Accordion>
                     )}
 
                     {error.measures && (
-                        <Box display="flex" gap={2}>
-                            <InfoIcon color="info" sx={{ mt: 0.5 }} />
-                            <Box>
-                                <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" textTransform="uppercase" gutterBottom>
-                                    Measures
-                                </Typography>
-                                <Typography variant="body1" color="text.primary" component="div">
+                        <Accordion disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Box display="flex" gap={1.5} alignItems="center">
+                                    <InfoIcon color="info" fontSize="small" />
+                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
+                                        Measures
+                                    </Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <Typography variant="body1" color="text.primary">
                                     {renderLinkedText(error.measures, true)}
                                 </Typography>
-                            </Box>
-                        </Box>
+                            </AccordionDetails>
+                        </Accordion>
                     )}
 
                     {error.solution && (
-                        <Box display="flex" gap={2}>
-                            <CheckCircleIcon color="success" sx={{ mt: 0.5 }} />
-                            <Box width="100%">
-                                <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" textTransform="uppercase" gutterBottom>
-                                    Solution
-                                </Typography>
+                        <Accordion defaultExpanded disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Box display="flex" gap={1.5} alignItems="center">
+                                    <CheckCircleIcon color="success" fontSize="small" />
+                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
+                                        Solution
+                                    </Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
                                 <Box color="text.primary">
                                     {(() => {
                                         const hasNumbering = /\d+\./.test(error.solution || '');
@@ -437,26 +453,28 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                                         );
                                     })()}
                                 </Box>
-                            </Box>
-                        </Box>
+                            </AccordionDetails>
+                        </Accordion>
                     )}
 
                     {error.correction && (
-                        <Box display="flex" gap={2}>
-                            {error.correction.toLowerCase().includes('warning') ? (
-                                <WarningIcon color="error" sx={{ mt: 0.5 }} />
-                            ) : (
-                                <CheckCircleIcon sx={{ color: 'text.secondary', mt: 0.5 }} /> // Using generic icon for standard correction
-                            )}
-                            <Box width="100%">
-                                <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" textTransform="uppercase" gutterBottom>
-                                    Correction
-                                </Typography>
-
+                        <Accordion disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Box display="flex" gap={1.5} alignItems="center">
+                                    {error.correction.toLowerCase().includes('warning') ? (
+                                        <WarningIcon color="error" fontSize="small" />
+                                    ) : (
+                                        <CheckCircleIcon sx={{ color: 'text.secondary' }} fontSize="small" />
+                                    )}
+                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
+                                        Correction
+                                    </Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
                                 {error.correction.toLowerCase().includes('warning') ? (
                                     <Box
                                         sx={{
-                                            mt: 1,
                                             p: 2,
                                             borderRadius: 2,
                                             bgcolor: alpha(theme.palette.error.main, 0.1),
@@ -473,17 +491,21 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                                         {renderLinkedText(error.correction, true)}
                                     </Typography>
                                 )}
-                            </Box>
-                        </Box>
+                            </AccordionDetails>
+                        </Accordion>
                     )}
 
                     {error.faulty_part_isolation && (
-                        <Box display="flex" gap={2}>
-                            <WarningIcon color="warning" sx={{ mt: 0.5 }} />
-                            <Box width="100%">
-                                <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" textTransform="uppercase" gutterBottom>
-                                    Fault Isolation
-                                </Typography>
+                        <Accordion disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Box display="flex" gap={1.5} alignItems="center">
+                                    <WarningIcon color="warning" fontSize="small" />
+                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
+                                        Fault Isolation
+                                    </Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
                                 <Box
                                     sx={{
                                         p: 1.5,
@@ -496,78 +518,81 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                                         {renderLinkedText(error.faulty_part_isolation, true)}
                                     </Typography>
                                 </Box>
-                            </Box>
-                        </Box>
+                            </AccordionDetails>
+                        </Accordion>
                     )}
 
                     {(error.estimated_abnormal_parts || (error.parts && error.parts.length > 0)) && (
-                        <Box sx={{ mt: 2, pt: 3, borderTop: `1px dashed ${theme.palette.divider}` }}>
-                            <Box display="flex" alignItems="center" gap={1} mb={2}>
-                                <BuildIcon color="secondary" />
-                                <Typography variant="h6" fontWeight="bold">
-                                    Recommended Spare Parts
-                                </Typography>
-                            </Box>
-
-                            {error.estimated_abnormal_parts && (
-                                <Box mb={3}>
-                                    <Typography variant="subtitle2" color="text.secondary" mb={1}>
-                                        Estimated Parts
+                        <Accordion defaultExpanded disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Box display="flex" gap={1.5} alignItems="center">
+                                    <BuildIcon color="secondary" fontSize="small" />
+                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
+                                        Recommended Spare Parts
                                     </Typography>
-                                    <Box
-                                        sx={{
-                                            p: 1.5,
-                                            bgcolor: 'background.default',
-                                            borderRadius: 1,
-                                        }}
-                                    >
-                                        <Typography variant="body2" component="div">
-                                            {renderLinkedTextWithParts(error.estimated_abnormal_parts)}
-                                        </Typography>
-                                    </Box>
                                 </Box>
-                            )}
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                {error.estimated_abnormal_parts && (
+                                    <Box mb={2}>
+                                        <Typography variant="subtitle2" color="text.secondary" mb={1}>
+                                            Estimated Parts
+                                        </Typography>
+                                        <Box
+                                            sx={{
+                                                p: 1.5,
+                                                bgcolor: 'background.default',
+                                                borderRadius: 1,
+                                            }}
+                                        >
+                                            <Typography variant="body2" component="div">
+                                                {renderLinkedTextWithParts(error.estimated_abnormal_parts)}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                )}
 
-                            {error.parts && error.parts.length > 0 && (
-                                <Grid container spacing={2}>
-                                    {error.parts.map((part, idx) => (
-                                        <Grid size={{ xs: 12, md: 6 }} key={idx}>
-                                            <Card variant="outlined" sx={{ display: 'flex', flexDirection: 'row', p: 1, alignItems: 'center', gap: 2 }}>
-                                                {part.image_url && (
-                                                    <Box
-                                                        component="img"
-                                                        src={part.image_url}
-                                                        alt={part.oem_code}
-                                                        sx={{ width: 64, height: 64, borderRadius: 1, objectFit: 'cover' }}
-                                                    />
-                                                )}
-                                                <Box flex={1} minWidth={0}>
-                                                    <Typography variant="subtitle2" color="secondary" fontFamily="monospace" fontWeight="bold">
-                                                        {part.oem_code}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.primary" sx={{ lineHeight: 1.2, mb: 0.5 }}>
-                                                        {part.description}
-                                                    </Typography>
-                                                    <Box display="flex" gap={0.5}>
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <Box
-                                                                key={i}
-                                                                sx={{
-                                                                    width: 16,
-                                                                    height: 4,
-                                                                    borderRadius: 1,
-                                                                    bgcolor: i < part.ranking ? 'secondary.main' : 'action.disabledBackground'
-                                                                }}
-                                                            />
-                                                        ))}
+                                {error.parts && error.parts.length > 0 && (
+                                    <Grid container spacing={2}>
+                                        {error.parts.map((part, idx) => (
+                                            <Grid size={{ xs: 12, md: 6 }} key={idx}>
+                                                <Card variant="outlined" sx={{ display: 'flex', flexDirection: 'row', p: 1, alignItems: 'center', gap: 2, height: '100%' }}>
+                                                    {part.image_url && (
+                                                        <Box
+                                                            component="img"
+                                                            src={part.image_url}
+                                                            alt={part.oem_code}
+                                                            sx={{ width: 64, height: 64, borderRadius: 1, objectFit: 'cover' }}
+                                                        />
+                                                    )}
+                                                    <Box flex={1} minWidth={0}>
+                                                        <Typography variant="subtitle2" color="secondary" fontFamily="monospace" fontWeight="bold">
+                                                            {part.oem_code}
+                                                        </Typography>
+                                                        <Typography variant="body2" color="text.primary" sx={{ lineHeight: 1.2, mb: 0.5 }}>
+                                                            {part.description}
+                                                        </Typography>
+                                                        <Box display="flex" gap={0.5}>
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <Box
+                                                                    key={i}
+                                                                    sx={{
+                                                                        width: 16,
+                                                                        height: 4,
+                                                                        borderRadius: 1,
+                                                                        bgcolor: i < part.ranking ? 'secondary.main' : 'action.disabledBackground'
+                                                                    }}
+                                                                />
+                                                            ))}
+                                                        </Box>
                                                     </Box>
-                                                </Box>
-                                            </Card>
-                                        </Grid>
-                                    ))}
-                                </Grid>
-                            )}
-                        </Box>
+                                                </Card>
+                                            </Grid>
+                                        ))}
+                                    </Grid>
+                                )}
+                            </AccordionDetails>
+                        </Accordion>
                     )}
                 </Stack>
             </CardContent>

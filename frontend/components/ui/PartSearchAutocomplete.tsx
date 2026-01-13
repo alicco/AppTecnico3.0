@@ -12,6 +12,7 @@ export interface Part {
     name: string;
     section_name: string;
     ref_number: string;
+    page_number: string;
     quantity: string;
 }
 
@@ -107,7 +108,7 @@ export function PartSearchAutocomplete({
                     if (typeof option === 'string') return option;
                     return `${option.part_code} - ${option.name}`;
                 }}
-                options={[]} // Disabled dropdown - only populate list below
+                options={[] as readonly Part[]} // Disabled dropdown - only populate list below
                 loading={loading}
                 inputValue={inputValue}
                 onInputChange={(event, newInputValue, reason) => {

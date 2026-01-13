@@ -216,7 +216,7 @@ export default function PartsPage() {
                             </Tabs>
 
                             <Grid container spacing={3} alignItems="flex-start">
-                                <Grid item xs={12} md={4}>
+                                <Grid size={{ xs: 12, md: 4 }}>
                                     <TextField
                                         select
                                         fullWidth
@@ -236,7 +236,7 @@ export default function PartsPage() {
                                 </Grid>
 
                                 {activeTab === 0 ? (
-                                    <Grid item xs={12} md={8}>
+                                    <Grid size={{ xs: 12, md: 8 }}>
                                         <PartSearchAutocomplete
                                             model={model}
                                             onSelect={(part) => {
@@ -250,7 +250,7 @@ export default function PartsPage() {
                                     </Grid>
                                 ) : (
                                     <>
-                                        <Grid item xs={12} md={4}>
+                                        <Grid size={{ xs: 12, md: 4 }}>
                                             <TextField
                                                 select
                                                 fullWidth
@@ -269,7 +269,7 @@ export default function PartsPage() {
                                                 ))}
                                             </TextField>
                                         </Grid>
-                                        <Grid item xs={12} md={4}>
+                                        <Grid size={{ xs: 12, md: 4 }}>
                                             <Button
                                                 fullWidth
                                                 variant="contained"

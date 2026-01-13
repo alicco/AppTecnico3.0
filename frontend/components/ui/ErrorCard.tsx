@@ -17,7 +17,7 @@ import {
     Construction as ConstructionIcon,
     Settings as SettingsIcon
 } from '@mui/icons-material';
-import { useState } from 'react';
+import { useState, ReactElement } from 'react';
 import { SparePartsSearch } from './SparePartsSearch';
 
 interface SparePart {
@@ -180,7 +180,7 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
             length: number;
             text: string;
             type: string;
-            icon: JSX.Element;
+            icon: ReactElement;
             color: 'secondary' | 'success';
             swNum?: number;
             bitNum?: number;
@@ -251,7 +251,7 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                         key={`link-${match.index}`}
                         size="small"
                         label={match.text}
-                        icon={match.icon}
+                        icon={match.icon as ReactElement}
                         color={match.color}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -276,7 +276,7 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                         key={`link-${match.index}`}
                         size="small"
                         label={match.text}
-                        icon={match.icon}
+                        icon={match.icon as ReactElement}
                         color={match.color}
                         onClick={(e) => {
                             e.stopPropagation();

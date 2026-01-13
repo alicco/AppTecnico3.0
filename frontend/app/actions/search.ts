@@ -4,11 +4,16 @@ import { supabase } from '@/lib/supabase';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:8000/api';
 
-export async function getPrinters() {
+export interface Printer {
+    id: string;
+    model_name: string;
+}
+
+export async function getPrinters(): Promise<Printer[]> {
     try {
         const res = await fetch(`${API_URL}/printers`, { cache: 'no-store' });
         if (!res.ok) return [];
-        return await res.json();
+        return (await res.json()) as Printer[];
     } catch (e) {
         console.error('Fetch printers failed', e);
         return [];

@@ -1,0 +1,22 @@
+# Environment variables - MAI committare credenziali
+backend/.env
+frontend/.env
+frontend/.env.local
+.env
+.env.*
+
+# Dipendenze
+node_modules/
+target/
+
+# Build
+.next/
+dist/
+build/
+
+# Log
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

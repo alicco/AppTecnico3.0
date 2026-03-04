@@ -1,8 +1,6 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
-
-const API_URL = process.env.API_URL || 'http://127.0.0.1:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : (process.env.API_URL || 'http://127.0.0.1:8000/api');
 
 export interface Printer {
     id: string;
@@ -74,16 +72,6 @@ export async function searchErrors(modelName: string, codeQuery: string, exact: 
     }
 }
 
-export async function getErrorDetails(id: string) {
-    const { data, error } = await supabase
-        .from('error_codes')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-    if (error) return null;
-    return data;
-}
 
 export async function getAllModelCodes(modelName: string) {
     try {

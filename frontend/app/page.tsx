@@ -1,859 +1,508 @@
 'use client';
 
-import { useState, useEffect, useTransition, useRef } from 'react';
-import { getPrinters, searchErrors, type ErrorCode } from '@/app/actions/search';
-import { ErrorCard } from '@/components/ui/ErrorCard';
-import { AutocompleteSearch } from '@/components/ui/AutocompleteSearch';
-import { DipSwitchViewer } from '@/components/ui/DipSwitchViewer';
-import { PartSearchAutocomplete, Part } from '@/components/ui/PartSearchAutocomplete';
-import {
-  Container,
-  Box,
-  Typography,
-  Paper,
-  Grid,
-  TextField,
-  MenuItem,
-  Button,
-  Stack,
-  CircularProgress,
-  InputAdornment,
-  Tabs,
-  Tab,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  Drawer,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Collapse
-} from '@mui/material';
-import {
-  Print as PrintIcon,
-  Search as SearchIcon,
-  Settings as SettingsIcon,
-  Tune as TuneIcon,
-  BugReport as BugIcon,
-  Error as ErrorIcon,
-  Build as BuildIcon,
-  ArrowBack as ArrowBackIcon,
-  Build as PartIcon,
-  ShoppingCart as CartIcon,
-  Favorite as FavoriteIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-  Delete as DeleteIcon,
-  ContentCopy as CopyIcon,
-  ExpandMore as ExpandMoreIcon
-} from '@mui/icons-material';
-import { Toaster, toast } from 'react-hot-toast';
+import { useState, useEffect, useTransition } from 'react';
+import { getPrinters, searchErrors, searchSpareParts, type ErrorCode, type Printer, type ManualSparePart } from '@/app/actions/search';
 
-interface CartItem extends Part {
-  cartId: string;
+type Tab = 'home' | 'errors' | 'parts' | 'scan';
+type FavItem = { code: string; description: string; printer: string; id: string };
+type AccordionPanel = 'none' | 'errors' | 'parts' | 'scan';
+
+const IconHome  = () => <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6" /></svg>;
+const IconSearch = () => <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" /></svg>;
+const IconBox   = () => <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0v10l-8 4m-8-4V7m16 0L12 11M4 7l8 4" /></svg>;
+const IconScan  = () => <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M3 12h18" /></svg>;
+const IconStar  = ({ filled }: { filled?: boolean }) => <svg width="18" height="18" fill={filled ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
+const IconCopy  = () => <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>;
+const IconPrint = () => <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>;
+const IconChev  = ({ open }: { open: boolean }) => <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.22s ease' }}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>;
+const IconCart  = () => <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 5A1 1 0 006 19h14" /><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /></svg>;
+const IconBarcode = () => <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><rect x="2" y="4" width="2" height="16" rx="0.5" fill="currentColor" stroke="none"/><rect x="6" y="4" width="1" height="16" rx="0.5" fill="currentColor" stroke="none"/><rect x="9" y="4" width="2" height="16" rx="0.5" fill="currentColor" stroke="none"/><rect x="13" y="4" width="1" height="16" rx="0.5" fill="currentColor" stroke="none"/><rect x="16" y="4" width="2" height="16" rx="0.5" fill="currentColor" stroke="none"/><rect x="20" y="4" width="2" height="16" rx="0.5" fill="currentColor" stroke="none"/></svg>;
+
+function copyText(text: string) { navigator.clipboard.writeText(text).catch(() => {}); }
+
+function ErrorResultCard({ error, printerName, onToggleFav, isFav }: {
+  error: ErrorCode; printerName: string; onToggleFav: (e: ErrorCode) => void; isFav: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const fields = [
+    { label: 'Causa', key: 'cause' },
+    { label: 'Misure da Adottare', key: 'measures_to_take_when_an_alert_occurs' },
+    { label: 'Soluzione', key: 'solution' },
+    { label: 'Parti Anomale', key: 'estimated_abnormal_parts' },
+    { label: 'Parti Guaste', key: 'faulty_part_isolation' },
+    { label: 'Correzione', key: 'correction' },
+    { label: 'Nota', key: 'note' },
+  ];
+  const classification = error.classification as string | undefined;
+  const isError = classification?.toLowerCase().includes('e');
+  function makeText() {
+    let t = `STAMPANTE: ${printerName}\nCODICE: ${error.code}\n`;
+    if (classification) t += `CLASSIFICAZIONE: ${classification}\n`;
+    fields.forEach(f => { const v = error[f.key] as string | undefined; if (v) t += `${f.label.toUpperCase()}: ${v}\n`; });
+    return t;
+  }
+  return (
+    <div className="result-card animate-in" style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+            <span className="error-code-big">{error.code}</span>
+            {classification && <span className={`badge ${isError ? 'badge-orange' : 'badge-blue'}`}>{classification}</span>}
+          </div>
+          {error.cause && <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{String(error.cause).slice(0, 110)}{String(error.cause).length > 110 ? '\u2026' : ''}</p>}
+        </div>
+        <button onClick={() => onToggleFav(error)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: isFav ? 'var(--accent-orange)' : 'var(--text-muted)', padding: 4, flexShrink: 0 }} aria-label="Preferito"><IconStar filled={isFav} /></button>
+      </div>
+      <button onClick={() => setExpanded(e => !e)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 11, fontWeight: 700, cursor: 'pointer', marginTop: 10, padding: 0, fontFamily: 'inherit', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+        {expanded ? 'Nascondi' : 'Dettagli'} <IconChev open={expanded} />
+      </button>
+      {expanded && (
+        <div style={{ marginTop: 12 }} className="animate-expand">
+          {fields.map(f => { const val = error[f.key] as string | undefined; if (!val) return null; return (<div key={f.key} className="detail-row"><span className="detail-label">{f.label}</span><span className="detail-value">{val}</span></div>); })}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button className="icon-btn" onClick={() => copyText(makeText())}><IconCopy /> Copia</button>
+            <button className="icon-btn" onClick={() => window.print()}><IconPrint /> Stampa</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
-interface MaintenanceSection {
-  name: string;
-  items: {
-    code: string;
-    name: string;
-    qty: string;
-    life: string;
-    page_key: string;
-  }[];
+function PartRow({ part, onAdd }: { part: ManualSparePart; onAdd: (p: ManualSparePart) => void }) {
+  return (
+    <div className="result-card animate-in" style={{ marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 5 }}>
+            <span className="badge badge-green mono">{part.part_code}</span>
+            {part.ref_number && <span className="badge badge-blue">Rif. {part.ref_number}</span>}
+            {part.page_number && <span className="badge" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-muted)' }}>Pag. {part.page_number}</span>}
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.4 }}>{part.name}</p>
+          {part.section_name && <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{part.section_name}</p>}
+        </div>
+        <button className="skeuo-btn skeuo-btn-orange" onClick={() => onAdd(part)} style={{ padding: '10px 16px', borderRadius: 10, flexDirection: 'row', gap: 4, fontSize: 18, minWidth: 42 }} aria-label="Aggiungi">+</button>
+      </div>
+    </div>
+  );
 }
 
-export default function Home() {
-  // Tabs State: 0 = Errors, 1 = Parts, 2 = Maintenance
-  const [activeTab, setActiveTab] = useState(0);
-  const [expandedSection, setExpandedSection] = useState<'errors' | 'parts' | null>(null);
-
-  // Common State
-  const [printers, setPrinters] = useState<{ id: string, model_name: string }[]>([]);
-  const [selectedModel, setSelectedModel] = useState('');
-
-  // Maintenance Data
-  const [maintenanceData, setMaintenanceData] = useState<Record<string, MaintenanceSection[]>>({});
-  const [selectedMaintenanceModel, setSelectedMaintenanceModel] = useState('C4065');
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-  // --- ERROR SEARCH STATE ---
-  const [codeQuery, setCodeQuery] = useState('');
-  const [errorResults, setErrorResults] = useState<ErrorCode[]>([]);
+function ErrorsAccordion({ printers, favorites, onToggleFav, isOpen }: {
+  printers: Printer[]; favorites: FavItem[];
+  onToggleFav: (e: ErrorCode, name: string) => void; isOpen: boolean;
+}) {
+  const [selectedPrinter, setSelectedPrinter] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ErrorCode[]>([]);
   const [isPending, startTransition] = useTransition();
-  const [dipSwitchTarget, setDipSwitchTarget] = useState<{ switch: number, bit: number } | null>(null);
-  const [showDipSwitches, setShowDipSwitches] = useState(false);
-  const dipSwitchRef = useRef<HTMLDivElement>(null);
+  const [exactMatch, setExactMatch] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const selectedPrinterName = printers.find(p => p.id === selectedPrinter)?.model_name ?? '';
+  function doSearch() {
+    if (!selectedPrinter) return;
+    setSearched(true);
+    startTransition(async () => { const data = await searchErrors(selectedPrinterName, query, exactMatch); setResults(data); });
+  }
+  if (!isOpen) return null;
+  return (
+    <div className="accordion-body animate-expand">
+      <div className="select-wrapper" style={{ marginBottom: 12 }}>
+        <select className="skeuo-select" value={selectedPrinter} onChange={e => { setSelectedPrinter(e.target.value); setResults([]); setSearched(false); }}>
+          <option value="">— Scegli stampante —</option>
+          {printers.map(p => <option key={p.id} value={p.id}>{p.model_name}</option>)}
+        </select>
+      </div>
+      <input className="skeuo-input" type="text" placeholder="Es: C-240, E1234…" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') doSearch(); }} disabled={!selectedPrinter} style={{ marginBottom: 12 }} />
+      <div className="row-between" style={{ marginBottom: 14 }}>
+        <label className="row-center" style={{ cursor: 'pointer', userSelect: 'none' }}>
+          <label className="toggle"><input type="checkbox" checked={exactMatch} onChange={e => setExactMatch(e.target.checked)} /><span className="toggle-slider" /></label>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: 'Rajdhani, sans-serif' }}>Match Esatto</span>
+        </label>
+      </div>
+      <button className="skeuo-btn skeuo-btn-blue tech-btn-row" onClick={doSearch} disabled={!selectedPrinter || isPending}>
+        {isPending ? <span className="spinner" /> : <IconSearch />}<span>{isPending ? 'Ricerca…' : 'Cerca Errori'}</span>
+      </button>
+      {searched && !isPending && results.length === 0 && <div className="empty-state"><div className="empty-icon">&#128269;</div><p>Nessun risultato</p></div>}
+      {results.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div className="row-between" style={{ marginBottom: 10 }}>
+            <span className="section-title" style={{ marginBottom: 0 }}>{results.length} risultat{results.length === 1 ? 'o' : 'i'}</span>
+            <span className="badge badge-blue">{selectedPrinterName}</span>
+          </div>
+          {results.map(err => <ErrorResultCard key={err.id} error={err} printerName={selectedPrinterName} onToggleFav={e => onToggleFav(e, selectedPrinterName)} isFav={favorites.some(f => f.id === err.id)} />)}
+        </div>
+      )}
+    </div>
+  );
+}
 
-  // --- PARTS SEARCH STATE ---
-  const [partSection, setPartSection] = useState('');
-  const [partSectionsList, setPartSectionsList] = useState<string[]>([]);
-  const [partResults, setPartResults] = useState<Part[]>([]);
-  const [partLoading, setPartLoading] = useState(false);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [partSearchMode, setPartSearchMode] = useState<'smart' | 'section'>('smart'); // 'smart' or 'section'
+function PartsAccordion({ printers, cart, onAddToCart, isOpen }: {
+  printers: Printer[]; cart: ManualSparePart[];
+  onAddToCart: (p: ManualSparePart) => void; isOpen: boolean;
+}) {
+  const [selectedPrinter, setSelectedPrinter] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ManualSparePart[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const [fuzzy, setFuzzy] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const selectedPrinterName = printers.find(p => p.id === selectedPrinter)?.model_name ?? '';
+  function doSearch() {
+    if (!selectedPrinter || !query.trim()) return;
+    setSearched(true);
+    startTransition(async () => { const data = await searchSpareParts(selectedPrinterName, query.trim(), fuzzy); setResults(data); });
+  }
+  if (!isOpen) return null;
+  return (
+    <div className="accordion-body animate-expand">
+      <div className="select-wrapper" style={{ marginBottom: 12 }}>
+        <select className="skeuo-select" value={selectedPrinter} onChange={e => { setSelectedPrinter(e.target.value); setResults([]); setSearched(false); }}>
+          <option value="">— Scegli stampante —</option>
+          {printers.map(p => <option key={p.id} value={p.id}>{p.model_name}</option>)}
+        </select>
+      </div>
+      <input className="skeuo-input" type="text" placeholder="Nome o codice ricambio…" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') doSearch(); }} disabled={!selectedPrinter} style={{ marginBottom: 12 }} />
+      <div className="row-between" style={{ marginBottom: 14 }}>
+        <label className="row-center" style={{ cursor: 'pointer', userSelect: 'none' }}>
+          <label className="toggle"><input type="checkbox" checked={fuzzy} onChange={e => setFuzzy(e.target.checked)} /><span className="toggle-slider" /></label>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: 'Rajdhani, sans-serif' }}>Ricerca Fuzzy</span>
+        </label>
+        {cart.length > 0 && <span className="badge badge-orange">&#128722; {cart.length}</span>}
+      </div>
+      <button className="skeuo-btn skeuo-btn-cyan tech-btn-row" onClick={doSearch} disabled={!selectedPrinter || !query.trim() || isPending}>
+        {isPending ? <span className="spinner" /> : <IconBox />}<span>{isPending ? 'Ricerca…' : 'Cerca Ricambi'}</span>
+      </button>
+      {searched && !isPending && results.length === 0 && <div className="empty-state"><div className="empty-icon">&#128230;</div><p>Nessun ricambio trovato</p></div>}
+      {results.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div className="row-between" style={{ marginBottom: 10 }}>
+            <span className="section-title" style={{ marginBottom: 0 }}>{results.length} ricamb{results.length === 1 ? 'io' : 'i'}</span>
+            <span className="badge badge-blue">{selectedPrinterName}</span>
+          </div>
+          {results.map((part, i) => <PartRow key={`${part.part_code}-${i}`} part={part} onAdd={onAddToCart} />)}
+        </div>
+      )}
+    </div>
+  );
+}
 
+function ScanAccordion({ onNavigateWithCode, isOpen }: {
+  onNavigateWithCode: (tab: Tab, code: string) => void; isOpen: boolean;
+}) {
+  const [code, setCode] = useState('');
+  if (!isOpen) return null;
+  return (
+    <div className="accordion-body animate-expand">
+      <div className="viewfinder" style={{ position: 'relative' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.5 }}>&#128247;</div>
+          <p style={{ fontSize: 11, color: 'rgba(0,255,157,0.40)', fontFamily: 'Rajdhani, sans-serif', letterSpacing: '1px', textTransform: 'uppercase' }}>Scanner non attivo</p>
+        </div>
+        <div style={{ position: 'absolute', top: 12, left: 12, width: 22, height: 22, borderTop: '2px solid var(--accent-lcd)', borderLeft: '2px solid var(--accent-lcd)', borderRadius: '4px 0 0 0' }} />
+        <div style={{ position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderTop: '2px solid var(--accent-lcd)', borderRight: '2px solid var(--accent-lcd)', borderRadius: '0 4px 0 0' }} />
+        <div style={{ position: 'absolute', bottom: 12, left: 12, width: 22, height: 22, borderBottom: '2px solid var(--accent-lcd)', borderLeft: '2px solid var(--accent-lcd)', borderRadius: '0 0 0 4px' }} />
+        <div style={{ position: 'absolute', bottom: 12, right: 12, width: 22, height: 22, borderBottom: '2px solid var(--accent-lcd)', borderRight: '2px solid var(--accent-lcd)', borderRadius: '0 0 4px 0' }} />
+      </div>
+      <button className="skeuo-btn skeuo-btn-orange tech-btn-row" onClick={() => window.location.href = '/scan'} style={{ marginBottom: 14 }}>
+        <IconBarcode /><span>Apri Scanner Fotocamera</span>
+      </button>
+      <div className="metal-divider" />
+      <p className="section-title" style={{ marginTop: 14, marginBottom: 10 }}>Inserimento Manuale</p>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <input className="skeuo-input" type="text" placeholder="Es: C-240" value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && code.trim()) onNavigateWithCode('errors', code.trim()); }} style={{ flex: 1 }} />
+        <button className="skeuo-btn skeuo-btn-blue" onClick={() => { if (code.trim()) onNavigateWithCode('errors', code.trim()); }} style={{ padding: '14px 18px', flexDirection: 'row' }}><IconSearch /></button>
+      </div>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    getPrinters().then(data => {
-      // Ensure unique model names for dropdown
-      const uniqueModels = Array.from(new Set(data.map(p => p.model_name)))
-        .map(name => data.find(p => p.model_name === name)!);
-      setPrinters(uniqueModels);
-    });
+function HomeView({ printers, favorites, cart, onToggleFav, onAddToCart, onNavigateWithCode }: {
+  printers: Printer[]; favorites: FavItem[]; cart: ManualSparePart[];
+  onToggleFav: (e: ErrorCode, name: string) => void;
+  onAddToCart: (p: ManualSparePart) => void;
+  onNavigateWithCode: (tab: Tab, code: string) => void;
+}) {
+  const [openPanel, setOpenPanel] = useState<AccordionPanel>('none');
+  function toggle(panel: AccordionPanel) { setOpenPanel(prev => prev === panel ? 'none' : panel); }
 
-    // Load Cart
-    const savedCart = localStorage.getItem('parts_cart');
-    if (savedCart) setCart(JSON.parse(savedCart));
-  }, []);
-
-  // Load maintenance data on mount
-  useEffect(() => {
-    fetch('/data/maintenance_all.json')
-      .then(res => res.json())
-      .then(data => setMaintenanceData(data))
-      .catch(err => console.error('Failed to load maintenance data:', err));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('parts_cart', JSON.stringify(cart));
-  }, [cart]);
-
-  // Fetch sections when model changes (for Parts tab - Browse Sections mode)
-  useEffect(() => {
-    if (selectedModel && expandedSection === 'parts' && partSearchMode === 'section') {
-      fetch(`${API_BASE}/api/parts/sections?model=${selectedModel}`)
-        .then(res => res.json())
-        .then(data => setPartSectionsList(data))
-        .catch(err => console.error(err));
-      setPartSection('');
-    }
-  }, [selectedModel, expandedSection, partSearchMode, API_BASE]);
-
-  // AUTO-SEARCH ON SECTION CHANGE
-  useEffect(() => {
-    if (expandedSection === 'parts' && partSearchMode === 'section' && selectedModel && partSection) {
-      searchParts();
-    }
-  }, [partSection, partSearchMode, selectedModel, expandedSection]);
-
-
-  // --- ERROR HANDLERS ---
-  const handleErrorSearch = (overrideCode?: string) => {
-    if (!selectedModel) return;
-    const query = overrideCode !== undefined ? overrideCode : codeQuery;
-
-    if (!query.trim()) {
-      setErrorResults([]);
-      return;
-    }
-
-    startTransition(async () => {
-      const data = await searchErrors(selectedModel, query, true);
-      setErrorResults(data);
-    });
-  };
-
-  const onDipSwitchClick = (sw: number, bit: number) => {
-    setDipSwitchTarget({ switch: sw, bit });
-    setShowDipSwitches(true);
-    setTimeout(() => {
-      dipSwitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  };
-
-  // --- PARTS HANDLERS ---
-  const searchParts = async () => {
-    setPartLoading(true);
-    let url = `${API_BASE}/api/parts?limit=500&fuzzy=true`;
-
-    if (!selectedModel) {
-      // If auto-triggered by effect, we might not want to toast error if model is missing (though effect handles it)
-      // But for manual button click, validation is good.
-      if (!partSection) { // Only toast if explicitly called without section?
-        // pass
-      }
-      setPartLoading(false);
-      return;
-    }
-    url += `&model=${selectedModel}`;
-
-    if (partSearchMode === 'section') {
-      if (partSection) url += `&section=${encodeURIComponent(partSection)}`;
-    }
-    // Note: Smart search is handled by Autocomplete component, but if we need manual trigger:
-    // ...
-
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      setPartResults(data);
-    } catch (err) {
-      toast.error('Search failed');
-      console.error(err);
-    } finally {
-      setPartLoading(false);
-    }
-  };
-
-  const addToCart = (part: Part) => {
-    const newItem: CartItem = { ...part, cartId: Math.random().toString(36).substr(2, 9) };
-    setCart([...cart, newItem]);
-    toast.success('Added to favorites');
-    setIsCartOpen(true);
-  };
-
-  const removeFromCart = (cartId: string) => {
-    setCart(cart.filter(item => item.cartId !== cartId));
-  };
-
-  const copyCart = () => {
-    const text = cart.map(item => `${item.part_code} - ${item.name} | Qty: ${item.quantity || '1'} | ${item.model}`).join('\n');
-    navigator.clipboard.writeText(text);
-    toast.success('Cart copied to clipboard');
-  };
-
-  const printCart = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      const html = `
-              <html>
-              <head>
-                  <title>Spare Parts List</title>
-                  <style>
-                      body { font-family: Arial, sans-serif; padding: 20px; }
-                      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                      th { background-color: #f2f2f2; }
-                      h1 { color: #333; }
-                  </style>
-              </head>
-              <body>
-                  <h1>Selected Favorites</h1>
-                  <table>
-                      <thead><tr><th>Code</th><th>Name</th><th>Qty</th><th>Model</th><th>Section</th></tr></thead>
-                      <tbody>
-                          ${cart.map(item => `
-                              <tr>
-                                  <td>${item.part_code}</td><td>${item.name}</td><td>${item.quantity || '1'}</td><td>${item.model}</td><td>${item.section_name}</td>
-                              </tr>`).join('')}
-                      </tbody>
-                  </table>
-              </body>
-              </html>
-          `;
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.print();
-    }
-  };
-
+  const panels: { id: AccordionPanel; label: string; sub: string; led: string; icon: React.ReactNode }[] = [
+    { id: 'errors', label: 'Codici Errore',   sub: 'Diagnostica guasti',  led: 'led-orange', icon: <span style={{ fontSize: 22 }}>&#9888;&#65039;</span> },
+    { id: 'parts',  label: 'Ricerca Ricambi', sub: 'Catalogo componenti', led: 'led-blue',   icon: <span style={{ fontSize: 22 }}>&#128297;</span> },
+    { id: 'scan',   label: 'Scanner Codice',  sub: 'Barcode & manuale',   led: 'led-green',  icon: <span style={{ fontSize: 22 }}>&#128247;</span> },
+  ];
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
-      <Toaster position="top-right" />
-      <Container maxWidth="lg" sx={{ pt: 4 }}>
-        <Stack spacing={4}>
+    <div>
+      <div className="metal-panel" style={{ padding: '20px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ width: 56, height: 56, borderRadius: 14, flexShrink: 0, background: 'linear-gradient(145deg, #252c3a 0%, #161c28 100%)', border: '1px solid rgba(255,255,255,0.10)', borderTopColor: 'rgba(255,255,255,0.18)', boxShadow: 'var(--shadow-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>&#128424;&#65039;</div>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px', fontFamily: 'Rajdhani, Inter, sans-serif', color: '#E8EDF5' }}>AppTecnico</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase', fontFamily: 'Rajdhani, sans-serif', marginTop: 2 }}>Assistenza Stampanti v3.0</div>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div className="led-dot led-green" /><span style={{ fontSize: 10, color: 'var(--accent-lcd)', fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.8px' }}>ONLINE</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div className="led-dot led-amber" /><span style={{ fontSize: 10, color: 'var(--accent-amber)', fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.8px' }}>DB LIVE</span></div>
+        </div>
+      </div>
 
-          {/* HOMEPAGE: Only when nothing expanded */}
-          {!expandedSection && (
-            <>
-              {/* Header */}
-              <Box textAlign="center" mb={6}>
-                <Typography
-                  variant="h2"
-                  fontWeight="800"
-                  sx={{
-                    background: 'linear-gradient(45deg, #005CAF 30%, #4facfe 90%)',
-                    backgroundClip: 'text',
-                    textFillColor: 'transparent',
-                    mb: 1
-                  }}
-                >
-                  KM Insight
-                </Typography>
-                <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 0.5 }}>
-                  Advanced Service Intelligence & Diagnostics for Konica Minolta
-                </Typography>
-                <Typography variant="body2" color="warning.main" sx={{ mb: 4, fontSize: '0.8rem', opacity: 0.8 }}>
-                  ⚠️ Versione BETA. Non sostituisce il manuale tecnico ufficiale.
-                </Typography>
-              </Box>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 20 }}>
+        {[
+          { val: 'Multi', label: 'Modelli', color: 'var(--accent-lcd)' },
+          { val: 'Live',  label: 'Ricerca', color: 'var(--accent-orange)' },
+          { val: 'AWS',   label: 'Cloud',   color: 'var(--accent-blue)' },
+        ].map(s => (
+          <div key={s.label} className="stat-card">
+            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 17, fontWeight: 600, color: s.color, letterSpacing: '1px', marginBottom: 4, textShadow: `0 0 10px ${s.color}60` }}>{s.val}</div>
+            <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.2px', fontFamily: 'Rajdhani, sans-serif' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
 
-              {/* Two Big Buttons Side by Side */}
-              <Grid container spacing={3} justifyContent="center">
-                <Grid size={{ xs: 12, sm: 6, md: 5 }}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    size="large"
-                    onClick={() => setExpandedSection('errors')}
-                    sx={{
-                      py: 6,
-                      borderRadius: 4,
-                      borderWidth: 3,
-                      borderColor: '#1976d2',
-                      color: '#1976d2',
-                      '&:hover': {
-                        borderWidth: 3,
-                        borderColor: '#1976d2',
-                        bgcolor: 'rgba(25, 118, 210, 0.08)'
-                      }
-                    }}
-                  >
-                    <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
-                      <BugIcon sx={{ fontSize: 64 }} />
-                      <Typography variant="h4" fontWeight="bold">
-                        Codici Errore
-                      </Typography>
-                    </Box>
-                  </Button>
+      <p className="section-title" style={{ marginBottom: 12 }}>Pannello Operativo</p>
 
-
-                </Grid>
-
-                <Grid size={{ xs: 12, sm: 6, md: 5 }}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    size="large"
-                    onClick={() => setExpandedSection('parts')}
-                    sx={{
-                      py: 6,
-                      borderRadius: 4,
-                      borderWidth: 3,
-                      borderColor: '#d32f2f',
-                      color: '#d32f2f',
-                      '&:hover': {
-                        borderWidth: 3,
-                        borderColor: '#d32f2f',
-                        bgcolor: 'rgba(211, 47, 47, 0.08)'
-                      }
-                    }}
-                  >
-                    <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
-                      <BuildIcon sx={{ fontSize: 64 }} />
-                      <Typography variant="h4" fontWeight="bold">
-                        Ricerca Parti
-                      </Typography>
-                    </Box>
-                  </Button>
-
-                </Grid>
-              </Grid>
-            </>
-          )}
-
-          {/* ERROR CODES SECTION: Full Screen */}
-          {expandedSection === 'errors' && (
-            <Box>
-              <Button
-                variant="contained"
-                startIcon={<ArrowBackIcon />}
-                onClick={() => {
-                  setExpandedSection(null);
-                  setSelectedModel('');
-                  setErrorResults([]);
-                }}
-                sx={{ mb: 3, borderRadius: 2, px: 3, bgcolor: '#1976d2' }}
-              >
-                Torna alla Home
-              </Button>
-
-              <Paper elevation={3} sx={{ p: 3, borderRadius: 4, mb: 3 }}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Seleziona Modello"
-                  value={selectedModel}
-                  onChange={(e) => {
-                    setSelectedModel(e.target.value);
-                    setErrorResults([]);
-                  }}
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PrintIcon color="action" />
-                        </InputAdornment>
-                      ),
-                      sx: { borderRadius: 3 }
-                    }
-                  }}
-                >
-                  <MenuItem value=""><em>Seleziona un modello</em></MenuItem>
-                  {printers.map((p) => (
-                    <MenuItem key={p.id} value={p.model_name}>
-                      {p.model_name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Paper>
-
-              <Paper elevation={3} sx={{ p: 4, borderRadius: 4, mb: 4, bgcolor: 'background.paper' }}>
-                <Grid container spacing={3} alignItems="center">
-                  <Grid size={{ xs: 12, md: 9 }}>
-                    <AutocompleteSearch
-                      model={selectedModel}
-                      onSelect={(code) => {
-                        setCodeQuery(code);
-                        handleErrorSearch(code);
-                      }}
-                      onQueryChange={setCodeQuery}
-                      placeholder="Enter Error Code (e.g. C-XXXX)..."
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12, md: 3 }}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      size="large"
-                      onClick={() => handleErrorSearch()}
-                      disabled={isPending || !selectedModel}
-                      sx={{ height: 56, borderRadius: 3, bgcolor: '#005CAF' }}
-                      startIcon={!isPending && <SearchIcon />}
-                    >
-                      {isPending ? <CircularProgress size={24} color="inherit" /> : 'Search'}
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Paper>
-
-              {selectedModel && (
-                <Box display="flex" justifyContent="center" mb={4}>
-                  <Button
-                    startIcon={<TuneIcon />}
-                    onClick={() => setShowDipSwitches(true)}
-                    variant="contained"
-                    sx={{ borderRadius: 50, px: 4, py: 1.5, background: 'linear-gradient(45deg, #005CAF 30%, #4facfe 90%)' }}
-                  >
-                    {showDipSwitches ? 'DipSW Matrix Active' : 'Open DipSW Matrix'}
-                  </Button>
-                </Box>
-              )}
-
-              {showDipSwitches && selectedModel && (
-                <DipSwitchViewer
-                  model={selectedModel}
-                  target={dipSwitchTarget}
-                  onClose={() => { setShowDipSwitches(false); setDipSwitchTarget(null); }}
-                />
-              )}
-
-              <Stack spacing={3}>
-                {errorResults.map((err) => (
-                  <ErrorCard key={err.id} error={err} onDipSwitchClick={onDipSwitchClick} model={selectedModel} />
-                ))}
-                {errorResults.length === 0 && !isPending && codeQuery && (
-                  <Box textAlign="center" py={4} color="text.secondary">No exact match found.</Box>
-                )}
-              </Stack>
-            </Box>
-          )}
-
-          {/* SPARE PARTS SECTION: Full Screen with Tabs */}
-          {expandedSection === 'parts' && (
-            <Box>
-              <Button
-                variant="contained"
-                startIcon={<ArrowBackIcon />}
-                onClick={() => {
-                  setExpandedSection(null);
-                  setSelectedModel('');
-                  setErrorResults([]);
-                  setPartResults([]);
-                  setActiveTab(0);
-                }}
-                sx={{ mb: 3, borderRadius: 2, px: 3, bgcolor: '#d32f2f' }}
-              >
-                Torna alla Home
-              </Button>
-
-              <Paper elevation={1} sx={{ borderRadius: 4, overflow: 'hidden', mb: 3 }}>
-                <Tabs
-                  value={activeTab}
-                  onChange={(e, v) => setActiveTab(v)}
-                  variant="fullWidth"
-                  sx={{
-                    bgcolor: 'background.paper',
-                    '& .Mui-selected': {
-                      color: activeTab === 0 ? '#005CAF' : '#FF512F',
-                      fontWeight: 'bold'
-                    },
-                    '& .MuiTabs-indicator': {
-                      bgcolor: activeTab === 0 ? '#005CAF' : '#FF512F'
-                    }
-                  }}
-                >
-                  <Tab icon={<SettingsIcon />} label="Spare Parts" iconPosition="start" />
-                  <Tab icon={<PartIcon />} label="Maintenance" iconPosition="start" />
-                </Tabs>
-              </Paper>
-
-              {/* === CONTENT: SPARE PARTS === */}
-              {activeTab === 0 && (
-                <Box>
-                  <Paper elevation={3} sx={{ p: 4, borderRadius: 4, mb: 4 }}>
-                    {/* Sub-Tabs for Parts */}
-                    <Box display="flex" gap={2} mb={3} borderBottom={1} borderColor="divider" pb={2}>
-                      <Button
-                        onClick={() => setPartSearchMode('smart')}
-                        variant={partSearchMode === 'smart' ? 'contained' : 'text'}
-                        color="secondary"
-                        sx={{ borderRadius: 20 }}
-                      >
-                        Smart Search
-                      </Button>
-                      <Button
-                        onClick={() => setPartSearchMode('section')}
-                        variant={partSearchMode === 'section' ? 'contained' : 'text'}
-                        color="secondary"
-                        sx={{ borderRadius: 20 }}
-                      >
-                        Browse Sections
-                      </Button>
-
-                      <Box flexGrow={1} />
-                      <Button
-                        variant="outlined"
-                        startIcon={<FavoriteIcon />}
-                        onClick={() => setIsCartOpen(true)}
-                      >
-                        Favorites ({cart.length})
-                      </Button>
-                    </Box>
-
-                    {partSearchMode === 'smart' ? (
-                      <Grid container spacing={2}>
-                        <Grid size={{ xs: 12 }}>
-                          <PartSearchAutocomplete
-                            model="" // Global search (independent from selection)
-                            onSelect={(part) => {
-                              if (part) setPartResults([part]);
-                            }}
-                            onResults={(results) => {
-                              setPartResults(results);
-                            }}
-                            placeholder="Search Part Code (Global Search)..."
-                          />
-                        </Grid>
-                      </Grid>
-                    ) : (
-                      <Grid container spacing={2} alignItems="center">
-                        <Grid size={{ xs: 12, md: 6 }}>
-                          <TextField
-                            select
-                            fullWidth
-                            label="Seleziona Modello"
-                            value={selectedModel}
-                            onChange={(e) => {
-                              setSelectedModel(e.target.value);
-                              setPartSection('');
-                              setPartResults([]);
-                            }}
-                            variant="outlined"
-                            sx={{ width: '100%' }}
-                            InputProps={{
-                              style: { fontSize: '1.2rem' }
-                            }}
-                            InputLabelProps={{
-                              style: { fontSize: '1.1rem' }
-                            }}
-                          >
-                            <MenuItem value=""><em>Seleziona un modello</em></MenuItem>
-                            {printers.map((p) => (
-                              <MenuItem key={p.id} value={p.model_name}>
-                                {p.model_name}
-                              </MenuItem>
-                            ))}
-                          </TextField>
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                          <TextField
-                            select
-                            fullWidth
-                            label="Seleziona Sezione"
-                            value={partSection}
-                            onChange={(e) => setPartSection(e.target.value)}
-                            disabled={!selectedModel}
-                            variant="outlined"
-                            sx={{ width: '100%' }}
-                            InputProps={{
-                              style: { fontSize: '1.2rem' }
-                            }}
-                            InputLabelProps={{
-                              style: { fontSize: '1.1rem' }
-                            }}
-                          >
-                            <MenuItem value=""><em>Seleziona Sezione</em></MenuItem>
-                            {partSectionsList.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-                          </TextField>
-                        </Grid>
-                      </Grid>
-                    )}
-                  </Paper>
-
-                  {/* Parts Results */}
-                  {partResults.length > 0 && (
-                    <Paper elevation={2} sx={{ borderRadius: 4, overflow: 'hidden' }}>
-                      <Box p={2} bgcolor="grey.50" borderBottom={1} borderColor="divider">
-                        <Typography variant="h6">Results ({partResults.length})</Typography>
-                      </Box>
-                      <TableContainer sx={{ maxHeight: 600 }}>
-                        <Table stickyHeader>
-                          <TableHead>
-                            <TableRow>
-                              <TableCell width={70}><b>Pg</b></TableCell>
-                              <TableCell width={60}><b>Key</b></TableCell>
-                              <TableCell><b>Model</b></TableCell>
-                              <TableCell><b>Code</b></TableCell>
-                              <TableCell><b>Name</b></TableCell>
-                              <TableCell width={60}><b>Qty</b></TableCell>
-                              <TableCell><b>Section</b></TableCell>
-                              <TableCell width={80}><b>Fav</b></TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {partResults.map((part, idx) => {
-                              // Use Model + Page + Code + Section + Ref for TRUE uniqueness
-                              const uniqueId = `${part.model}-${part.page_number}-${part.part_code}-${part.section_name}-${part.ref_number}`;
-                              const isFav = cart.some(i => `${i.model}-${i.page_number}-${i.part_code}-${i.section_name}-${i.ref_number}` === uniqueId);
-
-                              return (
-                                <TableRow key={uniqueId || idx} hover>
-                                  <TableCell>{part.page_number}</TableCell>
-                                  <TableCell>{part.ref_number}</TableCell>
-                                  <TableCell><Chip label={part.model} size="small" color="primary" variant="outlined" /></TableCell>
-                                  <TableCell sx={{ fontFamily: 'monospace', color: 'primary.main', fontWeight: 'bold' }}>
-                                    {part.part_code}
-                                  </TableCell>
-                                  <TableCell>{part.name}</TableCell>
-                                  <TableCell>{part.quantity}</TableCell>
-                                  <TableCell><Chip label={part.section_name} size="small" /></TableCell>
-                                  <TableCell>
-                                    <IconButton
-                                      color="primary"
-                                      onClick={() => {
-                                        if (isFav) {
-                                          const itemToRemove = cart.find(c => `${c.model}-${c.page_number}-${c.part_code}-${c.section_name}-${c.ref_number}` === uniqueId);
-                                          if (itemToRemove) removeFromCart(itemToRemove.cartId);
-                                          toast.success('Removed from favorites');
-                                        } else {
-                                          addToCart(part);
-                                        }
-                                      }}
-                                    >
-                                      {isFav ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                                    </IconButton>
-                                  </TableCell>
-                                </TableRow>
-                              )
-                            })}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </Paper>
-                  )}
-                </Box>
-              )}
-
-              {/* === CONTENT: MAINTENANCE === */}
-              {activeTab === 1 && (
-                <Box>
-                  <Paper elevation={3} sx={{ p: 3, borderRadius: 4, mb: 3 }}>
-                    <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                      Maintenance Schedule
-                    </Typography>
-
-                    {/* Model Selector */}
-                    <Box sx={{ mb: 3 }}>
-                      <TextField
-                        select
-                        fullWidth
-                        label="Select Model"
-                        value={selectedMaintenanceModel}
-                        onChange={(e) => setSelectedMaintenanceModel(e.target.value)}
-                        variant="outlined"
-                        sx={{ maxWidth: '400px' }}
-                        InputProps={{
-                          style: { fontSize: '1.2rem' }
-                        }}
-                        InputLabelProps={{
-                          style: { fontSize: '1.1rem' }
-                        }}
-                      >
-                        {Object.keys(maintenanceData).sort().map((model) => (
-                          <MenuItem key={model} value={model}>
-                            {model}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Box>
-
-                    {maintenanceData[selectedMaintenanceModel]?.map((section, idx) => (
-                      <Accordion key={idx}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography fontWeight="bold">{section.name}</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <TableContainer>
-                            <Table size="small">
-                              <TableHead>
-                                <TableRow>
-                                  <TableCell><b>Code</b></TableCell>
-                                  <TableCell><b>Name</b></TableCell>
-                                  <TableCell><b>Qty</b></TableCell>
-                                  <TableCell><b>Life (Yield)</b></TableCell>
-                                  <TableCell width={80}><b>Fav</b></TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {section.items.map((item: any, i: number) => {
-                                  // Construct a "Part" object for cart compatibility
-                                  const maintenancePart: Part = {
-                                    part_code: item.code,
-                                    name: item.name,
-                                    section_name: section.name, // Use maintenance section
-                                    model: selectedMaintenanceModel, // Use selected maintenance model
-                                    quantity: item.qty,
-                                    page_number: item.page_key?.split('-')[0] || '',
-                                    ref_number: `${section.name}-${i}`, // Use section name + index for uniqueness
-                                  };
-
-                                  const uniqueId = `${maintenancePart.model}-${maintenancePart.ref_number}-${maintenancePart.part_code}`;
-                                  const isFav = cart.some(c => `${c.model}-${c.ref_number}-${c.part_code}` === uniqueId);
-
-                                  return (
-                                    <TableRow key={i} hover>
-                                      <TableCell sx={{ fontFamily: 'monospace', color: 'primary.main', fontWeight: 'bold' }}>
-                                        {item.code}
-                                      </TableCell>
-                                      <TableCell>{item.name}</TableCell>
-                                      <TableCell>{item.qty}</TableCell>
-                                      <TableCell>{item.life}</TableCell>
-                                      <TableCell>
-                                        <IconButton
-                                          color="primary"
-                                          onClick={() => {
-                                            if (isFav) {
-                                              const itemToRemove = cart.find(c => `${c.model}-${c.ref_number}-${c.part_code}` === uniqueId);
-                                              if (itemToRemove) removeFromCart(itemToRemove.cartId);
-                                              toast.success('Removed from favorites');
-                                            } else {
-                                              addToCart(maintenancePart);
-                                            }
-                                          }}
-                                        >
-                                          {isFav ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                                        </IconButton>
-                                      </TableCell>
-                                    </TableRow>
-                                  )
-                                })}
-                              </TableBody>
-                            </Table>
-                          </TableContainer>
-                        </AccordionDetails>
-                      </Accordion>
-                    ))}
-                  </Paper>
-                </Box>
-              )}
-            </Box>
-          )}
-
-
-
-
-        </Stack>
-      </Container>
-
-
-      {/* Cart Drawer */}
-      <Drawer
-        anchor="right"
-        open={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        PaperProps={{ sx: { width: 350 } }}
-      >
-        <Box p={2} display="flex" justifyContent="space-between" alignItems="center" borderBottom={1} borderColor="divider">
-          <Typography variant="h6" display="flex" alignItems="center" gap={1}>
-            <FavoriteIcon /> Favorites List
-          </Typography>
-          <Chip label={cart.length} color="primary" size="small" />
-        </Box>
-        <List sx={{ flex: 1, overflow: 'auto' }}>
-          {cart.length === 0 && <Box p={4} textAlign="center" color="text.secondary">Empty list.</Box>}
-          {cart.map(item => (
-            <div key={item.cartId}>
-              <ListItem
-                secondaryAction={
-                  <IconButton edge="end" onClick={() => removeFromCart(item.cartId)} color="error"><DeleteIcon /></IconButton>
-                }
-              >
-                <ListItemText
-                  primary={
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Typography fontFamily="monospace" fontWeight="bold">{item.part_code}</Typography>
-                      <Box display="flex" alignItems="center" gap={0.5} ml={1}>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            const updated = cart.map(c =>
-                              c.cartId === item.cartId
-                                ? { ...c, quantity: String(Math.max(1, parseInt(c.quantity || '1') - 1)) }
-                                : c
-                            );
-                            setCart(updated);
-                          }}
-                        >
-                          -
-                        </IconButton>
-                        <Chip label={item.quantity || '1'} size="small" />
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            const updated = cart.map(c =>
-                              c.cartId === item.cartId
-                                ? { ...c, quantity: String(parseInt(c.quantity || '1') + 1) }
-                                : c
-                            );
-                            setCart(updated);
-                          }}
-                        >
-                          +
-                        </IconButton>
-                      </Box>
-                    </Box>
-                  }
-                  secondary={`${item.name} | ${item.model} - ${item.section_name}`}
-                />
-              </ListItem>
-              <Divider />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {panels.map(panel => {
+          const isOpen = openPanel === panel.id;
+          return (
+            <div key={panel.id} className={`accordion-panel${isOpen ? ' expanded' : ''}`}>
+              <div className="accordion-header" onClick={() => toggle(panel.id)}>
+                <div className={`led-dot ${panel.led}${isOpen ? ' active' : ''}`} />
+                <div style={{ fontSize: 20 }}>{panel.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'Rajdhani, Inter, sans-serif', letterSpacing: '0.3px', color: isOpen ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{panel.label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '1px', textTransform: 'uppercase', fontFamily: 'Rajdhani, sans-serif', marginTop: 1 }}>{panel.sub}</div>
+                </div>
+                <div style={{ color: 'var(--text-muted)', flexShrink: 0 }}><IconChev open={isOpen} /></div>
+              </div>
+              {panel.id === 'errors' && <ErrorsAccordion printers={printers} favorites={favorites} onToggleFav={onToggleFav} isOpen={isOpen} />}
+              {panel.id === 'parts'  && <PartsAccordion  printers={printers} cart={cart} onAddToCart={onAddToCart} isOpen={isOpen} />}
+              {panel.id === 'scan'   && <ScanAccordion   onNavigateWithCode={onNavigateWithCode} isOpen={isOpen} />}
             </div>
-          ))}
-        </List>
-        <Box p={2} borderTop={1} borderColor="divider" display="flex" flexDirection="column" gap={1}>
-          <Button variant="outlined" color="error" fullWidth onClick={() => { setCart([]); toast.success('Favorites cleared'); }}>
-            Empty Favorites
-          </Button>
-          <Box display="flex" gap={1}>
-            <Button variant="outlined" startIcon={<CopyIcon />} onClick={copyCart} disabled={cart.length === 0} fullWidth>Copy</Button>
-            <Button variant="contained" startIcon={<PrintIcon />} onClick={printCart} disabled={cart.length === 0} fullWidth>Print</Button>
-          </Box>
-        </Box>
-      </Drawer>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
-    </Box>
+function ErrorsView({ printers, favorites, onToggleFav }: { printers: Printer[]; favorites: FavItem[]; onToggleFav: (e: ErrorCode, name: string) => void; }) {
+  const [selectedPrinter, setSelectedPrinter] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ErrorCode[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const [exactMatch, setExactMatch] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const selectedPrinterName = printers.find(p => p.id === selectedPrinter)?.model_name ?? '';
+  function doSearch() {
+    if (!selectedPrinter) return;
+    setSearched(true);
+    startTransition(async () => { const data = await searchErrors(selectedPrinterName, query, exactMatch); setResults(data); });
+  }
+  return (
+    <div>
+      <div className="metal-panel-deep" style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div className="led-dot led-orange active" />
+          <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Rajdhani, sans-serif', letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--accent-orange)' }}>Diagnostica Errori</span>
+        </div>
+        <div className="select-wrapper" style={{ marginBottom: 12 }}><select className="skeuo-select" value={selectedPrinter} onChange={e => { setSelectedPrinter(e.target.value); setResults([]); setSearched(false); }}><option value="">— Scegli stampante —</option>{printers.map(p => <option key={p.id} value={p.id}>{p.model_name}</option>)}</select></div>
+        <input className="skeuo-input" type="text" placeholder="Es: C-240, E1234…" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') doSearch(); }} disabled={!selectedPrinter} style={{ marginBottom: 12 }} />
+        <div className="row-between" style={{ marginBottom: 16 }}>
+          <label className="row-center" style={{ cursor: 'pointer', userSelect: 'none' }}>
+            <label className="toggle"><input type="checkbox" checked={exactMatch} onChange={e => setExactMatch(e.target.checked)} /><span className="toggle-slider" /></label>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: 'Rajdhani, sans-serif' }}>Match Esatto</span>
+          </label>
+        </div>
+        <button className="skeuo-btn skeuo-btn-blue tech-btn-row" onClick={doSearch} disabled={!selectedPrinter || isPending}>{isPending ? <span className="spinner" /> : <IconSearch />}<span>{isPending ? 'Ricerca in corso…' : 'Cerca Errori'}</span></button>
+      </div>
+      {searched && !isPending && results.length === 0 && <div className="empty-state"><div className="empty-icon">&#128269;</div><p>Nessun risultato trovato</p></div>}
+      {results.length > 0 && (<><div className="row-between" style={{ marginBottom: 12 }}><span className="section-title" style={{ marginBottom: 0 }}>{results.length} risultat{results.length === 1 ? 'o' : 'i'}</span><span className="badge badge-orange">{selectedPrinterName}</span></div>{results.map(err => <ErrorResultCard key={err.id} error={err} printerName={selectedPrinterName} onToggleFav={e => onToggleFav(e, selectedPrinterName)} isFav={favorites.some(f => f.id === err.id)} />)}</>)}
+    </div>
+  );
+}
+
+function PartsView({ printers, cart, onAddToCart }: { printers: Printer[]; cart: ManualSparePart[]; onAddToCart: (p: ManualSparePart) => void; }) {
+  const [selectedPrinter, setSelectedPrinter] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ManualSparePart[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const [fuzzy, setFuzzy] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const selectedPrinterName = printers.find(p => p.id === selectedPrinter)?.model_name ?? '';
+  function doSearch() {
+    if (!selectedPrinter || !query.trim()) return;
+    setSearched(true);
+    startTransition(async () => { const data = await searchSpareParts(selectedPrinterName, query.trim(), fuzzy); setResults(data); });
+  }
+  return (
+    <div>
+      <div className="metal-panel-deep" style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}><div className="led-dot led-blue" /><span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Rajdhani, sans-serif', letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--accent-blue)' }}>Catalogo Ricambi</span></div>
+        <div className="select-wrapper" style={{ marginBottom: 12 }}><select className="skeuo-select" value={selectedPrinter} onChange={e => { setSelectedPrinter(e.target.value); setResults([]); setSearched(false); }}><option value="">— Scegli stampante —</option>{printers.map(p => <option key={p.id} value={p.id}>{p.model_name}</option>)}</select></div>
+        <input className="skeuo-input" type="text" placeholder="Nome o codice parte…" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') doSearch(); }} disabled={!selectedPrinter} style={{ marginBottom: 12 }} />
+        <div className="row-between" style={{ marginBottom: 16 }}>
+          <label className="row-center" style={{ cursor: 'pointer', userSelect: 'none' }}>
+            <label className="toggle"><input type="checkbox" checked={fuzzy} onChange={e => setFuzzy(e.target.checked)} /><span className="toggle-slider" /></label>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', fontFamily: 'Rajdhani, sans-serif' }}>Ricerca Fuzzy</span>
+          </label>
+          {cart.length > 0 && <span className="badge badge-orange">&#128722; {cart.length} art.</span>}
+        </div>
+        <button className="skeuo-btn skeuo-btn-cyan tech-btn-row" onClick={doSearch} disabled={!selectedPrinter || !query.trim() || isPending}>{isPending ? <span className="spinner" /> : <IconBox />}<span>{isPending ? 'Ricerca…' : 'Cerca Ricambi'}</span></button>
+      </div>
+      {searched && !isPending && results.length === 0 && <div className="empty-state"><div className="empty-icon">&#128230;</div><p>Nessun ricambio trovato</p></div>}
+      {results.length > 0 && (<><div className="row-between" style={{ marginBottom: 12 }}><span className="section-title" style={{ marginBottom: 0 }}>{results.length} ricamb{results.length === 1 ? 'io' : 'i'}</span><span className="badge badge-blue">{selectedPrinterName}</span></div>{results.map((part, i) => <PartRow key={`${part.part_code}-${i}`} part={part} onAdd={onAddToCart} />)}</>)}
+    </div>
+  );
+}
+
+function ScanView({ onNavigateWithCode }: { onNavigateWithCode: (tab: Tab, code: string) => void }) {
+  const [code, setCode] = useState('');
+  return (
+    <div>
+      <div className="metal-panel-deep" style={{ padding: 24, textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
+          <div className="led-dot led-green" />
+          <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Rajdhani, sans-serif', letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--accent-lcd)' }}>Scanner Barcode</span>
+        </div>
+        <div className="viewfinder" style={{ position: 'relative', maxWidth: 320, margin: '0 auto 20px' }}>
+          <div style={{ textAlign: 'center' }}><div style={{ fontSize: 48, marginBottom: 8, opacity: 0.4 }}>&#128247;</div><p style={{ fontSize: 11, color: 'rgba(0,255,157,0.35)', fontFamily: 'Rajdhani, sans-serif', letterSpacing: '1.2px', textTransform: 'uppercase' }}>Fotocamera non attiva</p></div>
+          <div style={{ position: 'absolute', top: 12, left: 12, width: 24, height: 24, borderTop: '2px solid var(--accent-lcd)', borderLeft: '2px solid var(--accent-lcd)', borderRadius: '4px 0 0 0' }} />
+          <div style={{ position: 'absolute', top: 12, right: 12, width: 24, height: 24, borderTop: '2px solid var(--accent-lcd)', borderRight: '2px solid var(--accent-lcd)', borderRadius: '0 4px 0 0' }} />
+          <div style={{ position: 'absolute', bottom: 12, left: 12, width: 24, height: 24, borderBottom: '2px solid var(--accent-lcd)', borderLeft: '2px solid var(--accent-lcd)', borderRadius: '0 0 0 4px' }} />
+          <div style={{ position: 'absolute', bottom: 12, right: 12, width: 24, height: 24, borderBottom: '2px solid var(--accent-lcd)', borderRight: '2px solid var(--accent-lcd)', borderRadius: '0 0 4px 0' }} />
+        </div>
+        <button className="skeuo-btn skeuo-btn-orange tech-btn-row" style={{ maxWidth: 320, margin: '0 auto' }} onClick={() => window.location.href = '/scan'}><IconBarcode /><span>Apri Scanner Fotocamera</span></button>
+      </div>
+      <div className="metal-panel" style={{ padding: 20 }}>
+        <p className="section-title" style={{ marginBottom: 10 }}>Inserimento Manuale Codice</p>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14 }}>Oppure digita il codice direttamente:</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input className="skeuo-input" type="text" placeholder="Es: C-240" value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && code.trim()) onNavigateWithCode('errors', code.trim()); }} style={{ flex: 1 }} />
+          <button className="skeuo-btn skeuo-btn-blue" style={{ padding: '14px 18px', flexDirection: 'row' }} onClick={() => { if (code.trim()) onNavigateWithCode('errors', code.trim()); }}><IconSearch /></button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CartDrawer({ cart, onClose, onRemove }: { cart: ManualSparePart[]; onClose: () => void; onRemove: (i: number) => void }) {
+  const makeCartText = () => cart.map(p => `${p.part_code} | ${p.name}`).join('\n');
+  return (
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="drawer" onClick={e => e.stopPropagation()}>
+        <div className="drawer-handle" />
+        <div className="row-between" style={{ marginBottom: 20 }}><h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.5px' }}>&#128722; Carrello</h2><span className="badge badge-orange">{cart.length} art.</span></div>
+        {cart.length === 0 ? <div className="empty-state"><div className="empty-icon">&#128722;</div><p>Carrello vuoto</p></div> : (
+          <>{cart.map((p, i) => (<div key={i} className="result-card" style={{ marginBottom: 8 }}><div className="row-between"><div><span className="badge badge-green mono" style={{ marginBottom: 4, display: 'inline-block' }}>{p.part_code}</span><p style={{ fontSize: 12, color: 'var(--text-primary)' }}>{p.name}</p></div><button onClick={() => onRemove(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 20, padding: 4 }}>×</button></div></div>))}
+          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}><button className="icon-btn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => copyText(makeCartText())}><IconCopy /> Copia Lista</button><button className="icon-btn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => window.print()}><IconPrint /> Stampa</button></div></>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FavoritesDrawer({ favorites, onClose, onRemove }: { favorites: FavItem[]; onClose: () => void; onRemove: (id: string) => void }) {
+  return (
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="drawer" onClick={e => e.stopPropagation()}>
+        <div className="drawer-handle" />
+        <div className="row-between" style={{ marginBottom: 20 }}><h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Rajdhani, sans-serif', letterSpacing: '0.5px' }}>&#11088; Preferiti</h2><span className="badge badge-orange">{favorites.length}</span></div>
+        {favorites.length === 0 ? <div className="empty-state"><div className="empty-icon">&#11088;</div><p>Nessun preferito</p></div> :
+          favorites.map(f => (<div key={f.id} className="result-card" style={{ marginBottom: 8 }}><div className="row-between"><div><span className="error-code-big" style={{ fontSize: 16 }}>{f.code}</span><p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{f.printer}</p></div><button onClick={() => onRemove(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 20, padding: 4 }}>×</button></div></div>))
+        }
+      </div>
+    </div>
+  );
+}
+
+export default function AppTecnico() {
+  const [activeTab, setActiveTab] = useState<Tab>('home');
+  const [printers, setPrinters] = useState<Printer[]>([]);
+  const [loadingPrinters, setLoadingPrinters] = useState(true);
+  const [favorites, setFavorites] = useState<FavItem[]>([]);
+  const [cart, setCart] = useState<ManualSparePart[]>([]);
+  const [showCart, setShowCart] = useState(false);
+  const [showFavs, setShowFavs] = useState(false);
+
+  useEffect(() => { (async () => { try { const data = await getPrinters(); setPrinters(data); } finally { setLoadingPrinters(false); } })(); }, []);
+  useEffect(() => { try { const saved = localStorage.getItem('apptecnico_favorites'); if (saved) setFavorites(JSON.parse(saved)); } catch { } }, []);
+
+  function toggleFav(error: ErrorCode, printerName: string) {
+    setFavorites(prev => {
+      const exists = prev.find(f => f.id === error.id);
+      const next = exists ? prev.filter(f => f.id !== error.id) : [...prev, { id: error.id, code: error.code, description: (error.cause as string) ?? '', printer: printerName }];
+      localStorage.setItem('apptecnico_favorites', JSON.stringify(next));
+      return next;
+    });
+  }
+
+  function addToCart(part: ManualSparePart) { setCart(prev => [...prev, part]); }
+  function removeFromCart(index: number) { setCart(prev => prev.filter((_, i) => i !== index)); }
+  function removeFav(id: string) { setFavorites(prev => { const next = prev.filter(f => f.id !== id); localStorage.setItem('apptecnico_favorites', JSON.stringify(next)); return next; }); }
+  function navigateWithCode(_tab: Tab, _code: string) { setActiveTab('errors'); }
+
+  const navItems: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: 'home',   label: 'Home',    icon: <IconHome /> },
+    { id: 'errors', label: 'Errori',  icon: <IconSearch /> },
+    { id: 'parts',  label: 'Ricambi', icon: <IconBox /> },
+    { id: 'scan',   label: 'Scanner', icon: <IconScan /> },
+  ];
+
+  return (
+    <>
+      <header className="app-header">
+        <div className="app-logo">
+          <div className="app-logo-icon">&#128424;&#65039;</div>
+          <div><div className="app-logo-text">AppTecnico</div><span className="app-logo-sub">Assistenza Stampanti</span></div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="header-btn" onClick={() => setShowFavs(true)} aria-label="Preferiti" style={{ position: 'relative' }}>
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+            {favorites.length > 0 && <span className="fav-count">{favorites.length}</span>}
+          </button>
+          <button className="header-btn" onClick={() => setShowCart(true)} aria-label="Carrello" style={{ position: 'relative' }}>
+            <IconCart />{cart.length > 0 && <span className="fav-count">{cart.length}</span>}
+          </button>
+        </div>
+      </header>
+
+      <div className="main-content desktop-tabs" style={{ paddingBottom: 0, display: 'none' }} id="desktop-tabs">
+        <div className="tabs">{navItems.map(item => <button key={item.id} className={`tab-btn ${activeTab === item.id ? 'active' : ''}`} onClick={() => setActiveTab(item.id)}>{item.label}</button>)}</div>
+      </div>
+
+      <main className="main-content">
+        {loadingPrinters && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 60, gap: 14, alignItems: 'center', color: 'var(--accent-lcd)', fontFamily: 'Rajdhani, sans-serif', letterSpacing: '1px', fontSize: 13, textTransform: 'uppercase' }}>
+            <span className="spinner" /> Caricamento…
+          </div>
+        )}
+        {!loadingPrinters && (
+          <>
+            {activeTab === 'home'   && <HomeView printers={printers} favorites={favorites} cart={cart} onToggleFav={toggleFav} onAddToCart={addToCart} onNavigateWithCode={navigateWithCode} />}
+            {activeTab === 'errors' && <ErrorsView printers={printers} favorites={favorites} onToggleFav={toggleFav} />}
+            {activeTab === 'parts'  && <PartsView printers={printers} cart={cart} onAddToCart={addToCart} />}
+            {activeTab === 'scan'   && <ScanView onNavigateWithCode={navigateWithCode} />}
+          </>
+        )}
+      </main>
+
+      <nav className="bottom-nav">
+        {navItems.map(item => (
+          <button key={item.id} className={`nav-item ${activeTab === item.id ? 'active' : ''}`} onClick={() => setActiveTab(item.id)}>
+            <span className="nav-icon">{item.icon}</span><span>{item.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {showCart && <CartDrawer cart={cart} onClose={() => setShowCart(false)} onRemove={removeFromCart} />}
+      {showFavs && <FavoritesDrawer favorites={favorites} onClose={() => setShowFavs(false)} onRemove={removeFav} />}
+
+      <style>{`
+        @media (min-width: 768px) { #desktop-tabs { display: block !important; } .bottom-nav { display: none !important; } }
+        .metal-panel-deep { background: linear-gradient(160deg, #1a1f28 0%, #151920 50%, #12161d 100%); border: 1px solid rgba(255,255,255,0.08); border-top-color: rgba(255,255,255,0.14); border-bottom-color: rgba(0,0,0,0.70); border-radius: 16px; box-shadow: var(--shadow-deep-raised); position: relative; overflow: hidden; }
+        .metal-panel { background: linear-gradient(145deg, #252c38 0%, #1e242e 25%, #1a1f28 50%, #1c2130 75%, #1a1e26 100%); border: 1px solid rgba(255,255,255,0.10); border-top-color: rgba(255,255,255,0.18); border-right-color: rgba(0,0,0,0.40); border-bottom-color: rgba(0,0,0,0.60); border-radius: 16px; box-shadow: var(--shadow-panel); position: relative; overflow: hidden; }
+      `}</style>
+    </>
   );
 }

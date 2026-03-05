@@ -364,25 +364,11 @@ export default function Home() {
 
         <div className="animate-fade-up" style={{ textAlign: 'center', marginBottom: 60, maxWidth: 560 }}>
           {/* Logo mark */}
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              background: 'var(--accent-dim)',
-              border: '1px solid rgba(56,189,248,0.3)',
-              borderRadius: 18,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-              boxShadow: '0 0 32px rgba(56,189,248,0.15)',
-            }}
-          >
-            <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={1.8}>
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-            </svg>
-          </div>
+          <img
+            src="/logo_km.svg"
+            alt="Konica Minolta Logo"
+            style={{ height: 50, margin: '0 auto 20px', display: 'block' }}
+          />
 
           <h1
             style={{
@@ -393,7 +379,7 @@ export default function Home() {
               lineHeight: 1.1,
             }}
           >
-            <span className="text-gradient-brand">KM Insight</span>
+            <span className="text-gradient-brand">KM Bourne</span>
           </h1>
 
           <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
@@ -565,7 +551,7 @@ export default function Home() {
             textAlign: 'center',
           }}
         >
-          Developed by AISAC · KM Insight v3.0
+          Developed by AISAC · KM Bourne v3.0
         </div>
       </main>
     );

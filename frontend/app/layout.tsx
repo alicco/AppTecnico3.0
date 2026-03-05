@@ -3,7 +3,7 @@ import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KM Insight — Intelligent Service Platform",
+  title: "KM Bourne — Intelligent Service Platform",
   description: "Advanced diagnostics and spare parts lookup for Konica Minolta systems. Developed by AISAC.",
 };
 

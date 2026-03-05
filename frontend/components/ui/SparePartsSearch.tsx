@@ -48,7 +48,7 @@ export function SparePartsSearch({ open, onClose, initialQuery = '', model }: Sp
         const fetchParts = async () => {
             setLoading(true);
             // Use fuzzy matching for better results
-            const data = await searchSpareParts(model, debouncedQuery, true);
+            const data = await searchSpareParts(model, debouncedQuery);
             setResults(data);
             setLoading(false);
         };

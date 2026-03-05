@@ -1,26 +1,468 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  /* Skeuomorphic Color Palette */
+  --bg-carbonite: #1a1a1b;
+  --bg-metal-light: #2c2c2e;
+  --bg-metal-dark: #121213;
+  --accent-orange: #ff9d00;
+  --accent-blue: #007aff;
+  --lcd-green: #00ff41;
+  --lcd-bg: #0a1b0a;
+  --text-primary: #f5f5f7;
+  --text-secondary: #8e8e93;
+  --text-muted: #48484a;
+  --border-metal: #3a3a3c;
+
+  /* Layout */
+  --header-height: 64px;
+  --footer-height: 80px;
+
+  /* Shadows - Hyper Realistic */
+  --skeuo-raised:
+    0 4px 6px -1px rgba(0, 0, 0, 0.4),
+    0 2px 4px -1px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+
+  --skeuo-raised-hover:
+    0 10px 15px -3px rgba(0, 0, 0, 0.5),
+    0 4px 6px -2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+
+  --skeuo-inset:
+    inset 0 2px 4px 0 rgba(0, 0, 0, 0.5),
+    0 1px 0 0 rgba(255, 255, 255, 0.05);
+
+  --skeuo-pressed:
+    inset 0 4px 6px -1px rgba(0, 0, 0, 0.6),
+    0 1px 0 0 rgba(255, 255, 255, 0.02);
+
+  /* Modern Colors - Fallbacks */
+  --background: #0f172a;
+  --foreground: #f8fafc;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-carbonite);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Metal Texture Overlay */
+.metal-texture {
+  position: relative;
+  overflow: hidden;
+}
+
+.metal-texture::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("https://www.transparenttextures.com/patterns/brushed-alum.png");
+  opacity: 0.15;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* Skeuomorphic Components */
+
+.metal-panel {
+  background: linear-gradient(145deg, var(--bg-metal-light), var(--bg-metal-dark));
+  border: 1px solid var(--border-metal);
+  box-shadow: var(--skeuo-raised);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.metal-panel-deep {
+  background: var(--bg-metal-dark);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: var(--skeuo-inset);
+  border-radius: 20px;
+}
+
+.lcd-display {
+  background: var(--lcd-bg);
+  border: 4px solid var(--bg-metal-dark);
+  box-shadow: var(--skeuo-inset), 0 0 15px rgba(0, 255, 65, 0.1);
+  padding: 16px;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--lcd-green);
+  border-radius: 12px;
+}
+
+.skeuo-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-metal);
+  box-shadow: var(--skeuo-inset);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  outline: none;
+  width: 100%;
+}
+
+.skeuo-input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3), var(--skeuo-inset);
+}
+
+.skeuo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 14px;
+}
+
+.skeuo-btn-blue {
+  background: linear-gradient(180deg, #3b82f6 0%, #1e40af 100%);
+  color: white;
+  box-shadow: 0 4px 0 #1e3a8a, var(--skeuo-raised);
+}
+
+.skeuo-btn-blue:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.skeuo-btn-blue:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #1e3a8a, var(--skeuo-pressed);
+}
+
+.skeuo-btn-orange {
+  background: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  box-shadow: 0 4px 0 #9a3412, var(--skeuo-raised);
+}
+
+.skeuo-btn-orange:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.skeuo-btn-orange:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #9a3412, var(--skeuo-pressed);
+}
+
+/* --- HYPER-REALISTIC HARDWARE BUTTONS (v5) --- */
+
+.hw-panel {
+  background: linear-gradient(135deg, #2d2d2f 0%, #1a1a1b 100%);
+  border: 1px solid #3a3a3c;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow:
+    0 30px 60px -12px rgba(0, 0, 0, 0.5),
+    0 18px 36px -18px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 24px;
+  width: 100%;
+}
+
+.hw-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.hw-button {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #444 0%, #222 100%);
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition: all 0.1s ease;
+
+  /* The physical bezel/casing */
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1),
+    0 6px 0 #111,
+    /* Static depth */
+    0 8px 15px rgba(0, 0, 0, 0.4);
+}
+
+.hw-button::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  background: linear-gradient(180deg, #555 0%, #333 100%);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.hw-button:active {
+  transform: translateY(4px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05),
+    0 2px 0 #111,
+    0 3px 5px rgba(0, 0, 0, 0.5);
+}
+
+.hw-button:active::before {
+  background: linear-gradient(180deg, #333 0%, #222 100%);
+}
+
+.hw-led {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #333;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+}
+
+.hw-button:hover .hw-led {
+  background: #ffcf00;
+  box-shadow: 0 0 8px #ffcf0088, inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.hw-label {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 900;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Animations */
+.animate-in {
+  animation: slideUp 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* LED Indicators */
+.led-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.led-dot::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  filter: blur(4px);
+  z-index: -1;
+}
+
+.led-orange.active {
+  background: #ff9d00;
+  box-shadow: 0 0 10px #ff9d00;
+}
+
+.led-orange.active::after {
+  background: #ff9d0033;
+}
+
+.led-green.active {
+  background: #4cd964;
+  box-shadow: 0 0 10px #4cd964;
+}
+
+.led-green.active::after {
+  background: #4cd96433;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-carbonite);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-metal);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Utility Classes */
+.mono {
+  font-family: var(--font-geist-mono), monospace;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-metal-dark);
+}
+
+.badge-blue {
+  color: var(--accent-blue);
+  background: rgba(0, 122, 255, 0.1);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+.badge-orange {
+  color: var(--accent-orange);
+  background: rgba(255, 157, 0, 0.1);
+  border: 1px solid rgba(255, 157, 0, 0.2);
+}
+
+/* Dropdown / Search Suggestions */
+.skeuo-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-metal-light);
+  border: 1px solid var(--border-metal);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border-radius: 0 0 16px 16px;
+  z-index: 1000;
+  margin-top: -8px;
+  padding: 8px 0;
+  max-h: 300px;
+  overflow-y: auto;
+}
+
+.dropdown-item {
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Spinner Custom */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Header & Footer Layout */
+.app-header {
+  height: var(--header-height);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, var(--bg-metal-light), var(--bg-carbonite));
+  border-bottom: 2px solid var(--border-metal);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.bottom-nav {
+  height: var(--footer-height);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-metal-dark);
+  border-top: 12px solid #000;
+  /* Aesthetic cut */
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  position: fixed;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+  cursor: pointer;
+}
+
+.nav-item.active {
+  color: var(--accent-orange);
+}
+
+.nav-item svg {
+  transition: transform 0.2s;
+}
+
+.nav-item:active svg {
+  transform: scale(0.9);
 }

@@ -3,6 +3,7 @@ use axum::{
     extract::DefaultBodyLimit,
     Router,
 };
+use lambda_http::run;
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
@@ -130,10 +131,17 @@ async fn main() {
         .layer(CorsLayer::permissive())
         .with_state(state);
 
-    let port = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8000);
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    let is_lambda = std::env::var("AWS_LAMBDA_RUNTIME_API").is_ok();
 
-    tracing::info!("listening on {}", addr);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    if is_lambda {
+        tracing::info!("Starting in AWS Lambda environment");
+        run(app).await.unwrap();
+    } else {
+        let port = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8000);
+        let addr = SocketAddr::from(([0, 0, 0, 0], port));
+
+        tracing::info!("listening on {}", addr);
+        let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+        axum::serve(listener, app).await.unwrap();
+    }
 }

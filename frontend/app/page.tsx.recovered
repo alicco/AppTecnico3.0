@@ -1,0 +1,1373 @@
+��'use client';
+
+import { useState, useEffect, useTransition, useRef } from 'react';
+import { getPrinters, searchErrors, type ErrorCode } from '@/app/actions/search';
+import { ErrorCard } from '@/components/ui/ErrorCard';
+import { AutocompleteSearch } from '@/components/ui/AutocompleteSearch';
+import { DipSwitchViewer } from '@/components/ui/DipSwitchViewer';
+import { PartSearchAutocomplete, Part } from '@/components/ui/PartSearchAutocomplete';
+import { colors, skeuShadows } from '@/components/ThemeRegistry/theme';
+import {
+  Container,
+  Box,
+  Typography,
+  Paper,
+  Grid,
+  TextField,
+  MenuItem,
+  Button,
+  Stack,
+  CircularProgress,
+  InputAdornment,
+  Tabs,
+  Tab,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
+  Drawer,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Collapse,
+  alpha
+} from '@mui/material';
+import {
+  Print as PrintIcon,
+  Search as SearchIcon,
+  Settings as SettingsIcon,
+  Tune as TuneIcon,
+  BugReport as BugIcon,
+  Error as ErrorIcon,
+  Build as BuildIcon,
+  ArrowBack as ArrowBackIcon,
+  Build as PartIcon,
+  ShoppingCart as CartIcon,
+  Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
+  Delete as DeleteIcon,
+  ContentCopy as CopyIcon,
+  ExpandMore as ExpandMoreIcon,
+  QrCodeScanner as ScannerIcon
+} from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
+import { Toaster, toast } from 'react-hot-toast';
+
+interface CartItem extends Part {
+  cartId: string;
+}
+
+interface MaintenanceSection {
+  name: string;
+  items: {
+    code: string;
+    name: string;
+    qty: string;
+    life: string;
+    page_key: string;
+  }[];
+}
+
+// ═══════════════════════════════════════
+// DECORATIVE COMPONENTS
+// ═══════════════════════════════════════
+
+/** Screw decorator */
+function Screw({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) {
+  const posStyle = {
+    tl: { top: 10, left: 10 },
+    tr: { top: 10, right: 10 },
+    bl: { bottom: 10, left: 10 },
+    br: { bottom: 10, right: 10 },
+  }[position];
+
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        ...posStyle,
+        width: 12,
+        height: 12,
+        borderRadius: '50%',
+        background: `linear-gradient(135deg, ${colors.borderLight} 0%, ${colors.borderDark} 100%)`,
+        boxShadow: `inset 0 1px 1px rgba(255,255,255,0.1), 0 1px 2px rgba(0,0,0,0.5)`,
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: '50%',
+          left: '20%',
+          right: '20%',
+          height: '1px',
+          background: 'rgba(0,0,0,0.5)',
+          transform: 'translateY(-50%) rotate(45deg)',
+        },
+        zIndex: 1,
+      }}
+    />
+  );
+}
+
+/** LED indicator */
+function LEDIndicator({ color = colors.accentGreen, active = true, size = 8 }: { color?: string; active?: boolean; size?: number }) {
+  return (
+    <Box
+      sx={{
+        display: 'inline-block',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: active ? color : colors.bgInset,
+        boxShadow: active
+          ? `inset 0 1px 2px rgba(0,0,0,0.3), 0 0 ${size}px ${alpha(color, 0.5)}, 0 0 ${size * 2}px ${alpha(color, 0.2)}`
+          : `inset 0 1px 2px rgba(0,0,0,0.4)`,
+        transition: 'all 0.3s ease',
+      }}
+    />
+  );
+}
+
+
+export default function Home() {
+  const router = useRouter();
+  // Tabs State: 0 = Errors, 1 = Parts, 2 = Maintenance
+  const [activeTab, setActiveTab] = useState(0);
+  const [expandedSection, setExpandedSection] = useState<'errors' | 'parts' | null>(null);
+
+  // Common State
+  const [printers, setPrinters] = useState<{ id: string, model_name: string }[]>([]);
+  const [selectedModel, setSelectedModel] = useState('');
+
+  // Maintenance Data
+  const [maintenanceData, setMaintenanceData] = useState<Record<string, MaintenanceSection[]>>({});
+  const [selectedMaintenanceModel, setSelectedMaintenanceModel] = useState('C4065');
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+  // --- ERROR SEARCH STATE ---
+  const [codeQuery, setCodeQuery] = useState('');
+  const [errorResults, setErrorResults] = useState<ErrorCode[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const [dipSwitchTarget, setDipSwitchTarget] = useState<{ switch: number, bit: number } | null>(null);
+  const [showDipSwitches, setShowDipSwitches] = useState(false);
+  const dipSwitchRef = useRef<HTMLDivElement>(null);
+
+  // --- PARTS SEARCH STATE ---
+  const [partSection, setPartSection] = useState('');
+  const [partSectionsList, setPartSectionsList] = useState<string[]>([]);
+  const [partResults, setPartResults] = useState<Part[]>([]);
+  const [partLoading, setPartLoading] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [partSearchMode, setPartSearchMode] = useState<'smart' | 'section'>('smart');
+
+
+  useEffect(() => {
+    getPrinters().then(data => {
+      const uniqueModels = Array.from(new Set(data.map(p => p.model_name)))
+        .map(name => data.find(p => p.model_name === name)!);
+      setPrinters(uniqueModels);
+    });
+    const savedCart = localStorage.getItem('parts_cart');
+    if (savedCart) setCart(JSON.parse(savedCart));
+  }, []);
+
+  useEffect(() => {
+    fetch('/data/maintenance_all.json')
+      .then(res => res.json())
+      .then(data => setMaintenanceData(data))
+      .catch(err => console.error('Failed to load maintenance data:', err));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('parts_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    if (selectedModel && expandedSection === 'parts' && partSearchMode === 'section') {
+      fetch(`${API_BASE}/api/parts/sections?model=${selectedModel}`)
+        .then(res => res.json())
+        .then(data => setPartSectionsList(data))
+        .catch(err => console.error(err));
+      setPartSection('');
+    }
+  }, [selectedModel, expandedSection, partSearchMode, API_BASE]);
+
+  useEffect(() => {
+    if (expandedSection === 'parts' && partSearchMode === 'section' && selectedModel && partSection) {
+      searchParts();
+    }
+  }, [partSection, partSearchMode, selectedModel, expandedSection]);
+
+
+  // --- ERROR HANDLERS ---
+  const handleErrorSearch = (overrideCode?: string) => {
+    if (!selectedModel) return;
+    const query = overrideCode !== undefined ? overrideCode : codeQuery;
+    if (!query.trim()) {
+      setErrorResults([]);
+      return;
+    }
+    startTransition(async () => {
+      const data = await searchErrors(selectedModel, query, true);
+      setErrorResults(data);
+    });
+  };
+
+  const onDipSwitchClick = (sw: number, bit: number) => {
+    setDipSwitchTarget({ switch: sw, bit });
+    setShowDipSwitches(true);
+    setTimeout(() => {
+      dipSwitchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  // --- PARTS HANDLERS ---
+  const searchParts = async () => {
+    setPartLoading(true);
+    let url = `${API_BASE}/api/parts?limit=500&fuzzy=true`;
+    if (!selectedModel) {
+      setPartLoading(false);
+      return;
+    }
+    url += `&model=${selectedModel}`;
+    if (partSearchMode === 'section') {
+      if (partSection) url += `&section=${encodeURIComponent(partSection)}`;
+    }
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      setPartResults(data);
+    } catch (err) {
+      toast.error('Search failed');
+      console.error(err);
+    } finally {
+      setPartLoading(false);
+    }
+  };
+
+  const addToCart = (part: Part) => {
+    const newItem: CartItem = { ...part, cartId: Math.random().toString(36).substr(2, 9) };
+    setCart([...cart, newItem]);
+    toast.success('Added to favorites');
+    setIsCartOpen(true);
+  };
+
+  const removeFromCart = (cartId: string) => {
+    setCart(cart.filter(item => item.cartId !== cartId));
+  };
+
+  const copyCart = () => {
+    const text = cart.map(item => `${item.part_code} - ${item.name} | Qty: ${item.quantity || '1'} | ${item.model}`).join('\n');
+    navigator.clipboard.writeText(text);
+    toast.success('Cart copied to clipboard');
+  };
+
+  const printCart = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const html = `
+              <html>
+              <head>
+                  <title>Spare Parts List</title>
+                  <style>
+                      body { font-family: Arial, sans-serif; padding: 20px; }
+                      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                      th { background-color: #f2f2f2; }
+                      h1 { color: #333; }
+                  </style>
+              </head>
+              <body>
+                  <h1>Selected Favorites</h1>
+                  <table>
+                      <thead><tr><th>Code</th><th>Name</th><th>Qty</th><th>Model</th><th>Section</th></tr></thead>
+                      <tbody>
+                          ${cart.map(item => `
+                              <tr>
+                                  <td>${item.part_code}</td><td>${item.name}</td><td>${item.quantity || '1'}</td><td>${item.model}</td><td>${item.section_name}</td>
+                              </tr>`).join('')}
+                      </tbody>
+                  </table>
+              </body>
+              </html>
+          `;
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+
+  return (
+    <Box sx={{ minHeight: '100vh', pb: 8 }}>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: colors.bgSurface,
+            color: colors.textPrimary,
+            border: `1px solid ${colors.borderMid}`,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          },
+        }}
+      />
+      <Container maxWidth="lg" sx={{ pt: 4 }}>
+        <Stack spacing={4}>
+
+          {/* ═══════════════════════════════════════ */}
+          {/* HOMEPAGE: Control Panel Landing        */}
+          {/* ═══════════════════════════════════════ */}
+          {!expandedSection && (
+            <Box className="skeu-slide-in">
+
+              {/* ── Header: Metallic Title ── */}
+              <Box textAlign="center" mb={8} mt={4}>
+                {/* Status LED bar */}
+                <Box
+                  display="flex"
+                  justifyContent="center"
+                  gap={1}
+                  mb={3}
+                >
+                  <LEDIndicator color={colors.accentGreen} active />
+                  <LEDIndicator color={colors.accentBlue} active />
+                  <LEDIndicator color={colors.accentAmber} active />
+                </Box>
+
+                <Typography
+                  variant="h2"
+                  sx={{
+                    fontWeight: 900,
+                    fontSize: { xs: '2.5rem', md: '3.5rem' },
+                    background: `linear-gradient(180deg, #ffffff 0%, #8899aa 50%, #c0cad6 100%)`,
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                    mb: 1,
+                    letterSpacing: '-0.03em',
+                  }}
+                >
+                  KM INSIGHT
+                </Typography>
+
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: colors.textSecondary,
+                    letterSpacing: '0.15em',
+                    textTransform: 'uppercase',
+                    fontSize: '0.85rem',
+                    mb: 1,
+                  }}
+                >
+                  Advanced Service Intelligence & Diagnostics
+                </Typography>
+
+                {/* Beta badge */}
+                <Box
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    mt: 2,
+                    px: 2,
+                    py: 0.5,
+                    borderRadius: 2,
+                    background: alpha(colors.accentAmber, 0.1),
+                    border: `1px solid ${alpha(colors.accentAmber, 0.3)}`,
+                    boxShadow: `inset 0 1px 0 ${alpha(colors.accentAmber, 0.1)}`,
+                  }}
+                >
+                  <LEDIndicator color={colors.accentAmber} size={6} />
+                  <Typography variant="caption" sx={{ color: colors.accentAmber, fontWeight: 600, letterSpacing: '0.05em' }}>
+                    BETA — Non sostituisce il manuale tecnico ufficiale
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* ── Two Main Control Buttons ── */}
+              <Grid container spacing={4} justifyContent="center">
+
+                {/* Error Codes Button */}
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Box
+                    onClick={() => setExpandedSection('errors')}
+                    sx={{
+                      cursor: 'pointer',
+                      position: 'relative',
+                      p: { xs: 4, md: 5 },
+                      borderRadius: 4,
+                      background: `linear-gradient(180deg, ${colors.bgSurface} 0%, ${colors.bgPanel} 100%)`,
+                      border: `1px solid ${colors.borderMid}`,
+                      boxShadow: skeuShadows.raised,
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      overflow: 'hidden',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '1px',
+                        background: `linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.08) 50%, transparent 90%)`,
+                      },
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: `linear-gradient(180deg, transparent 60%, ${alpha(colors.accentBlue, 0.03)} 100%)`,
+                        pointerEvents: 'none',
+                      },
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `${skeuShadows.raisedHover}, 0 0 30px ${alpha(colors.accentBlue, 0.15)}`,
+                        borderColor: alpha(colors.accentBlue, 0.3),
+                      },
+                      '&:active': {
+                        transform: 'translateY(1px)',
+                        boxShadow: skeuShadows.pressed,
+                      },
+                    }}
+                  >
+                    <Screw position="tl" />
+                    <Screw position="tr" />
+                    <Screw position="bl" />
+                    <Screw position="br" />
+                    <Box display="flex" flexDirection="column" alignItems="center" gap={2} position="relative" zIndex={2}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: '50%',
+                          background: alpha(colors.accentBlue, 0.1),
+                          boxShadow: `0 0 24px ${alpha(colors.accentBlue, 0.2)}`,
+                        }}
+                      >
+                        <BugIcon sx={{ fontSize: 56, color: colors.accentBlue, filter: `drop-shadow(0 0 8px ${alpha(colors.accentBlue, 0.5)})` }} />
+                      </Box>
+                      <Typography variant="h4" fontWeight="bold" sx={{ color: colors.textPrimary }}>
+                        Codici Errore
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: colors.textSecondary, textAlign: 'center' }}>
+                        Diagnostica e risoluzione errori
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                {/* Parts Search Button */}
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Box
+                    onClick={() => setExpandedSection('parts')}
+                    sx={{
+                      cursor: 'pointer',
+                      position: 'relative',
+                      p: { xs: 4, md: 5 },
+                      borderRadius: 4,
+                      background: `linear-gradient(180deg, ${colors.bgSurface} 0%, ${colors.bgPanel} 100%)`,
+                      border: `1px solid ${colors.borderMid}`,
+                      boxShadow: skeuShadows.raised,
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      overflow: 'hidden',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '1px',
+                        background: `linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.08) 50%, transparent 90%)`,
+                      },
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: `linear-gradient(180deg, transparent 60%, ${alpha(colors.accentRed, 0.03)} 100%)`,
+                        pointerEvents: 'none',
+                      },
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `${skeuShadows.raisedHover}, 0 0 30px ${alpha(colors.accentRed, 0.15)}`,
+                        borderColor: alpha(colors.accentRed, 0.3),
+                      },
+                      '&:active': {
+                        transform: 'translateY(1px)',
+                        boxShadow: skeuShadows.pressed,
+                      },
+                    }}
+                  >
+                    <Screw position="tl" />
+                    <Screw position="tr" />
+                    <Screw position="bl" />
+                    <Screw position="br" />
+                    <Box display="flex" flexDirection="column" alignItems="center" gap={2} position="relative" zIndex={2}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: '50%',
+                          background: alpha(colors.accentRed, 0.1),
+                          boxShadow: `0 0 24px ${alpha(colors.accentRed, 0.2)}`,
+                        }}
+                      >
+                        <BuildIcon sx={{ fontSize: 56, color: colors.accentRed, filter: `drop-shadow(0 0 8px ${alpha(colors.accentRed, 0.5)})` }} />
+                      </Box>
+                      <Typography variant="h4" fontWeight="bold" sx={{ color: colors.textPrimary }}>
+                        Ricerca Parti
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: colors.textSecondary, textAlign: 'center' }}>
+                        Spare parts e manutenzione
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                {/* Scanner Button */}
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Box
+                    onClick={() => router.push('/scan')}
+                    sx={{
+                      cursor: 'pointer',
+                      position: 'relative',
+                      p: { xs: 4, md: 5 },
+                      borderRadius: 4,
+                      background: `linear-gradient(180deg, ${colors.bgSurface} 0%, ${colors.bgPanel} 100%)`,
+                      border: `1px solid ${colors.borderMid}`,
+                      boxShadow: skeuShadows.raised,
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      overflow: 'hidden',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '1px',
+                        background: `linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.08) 50%, transparent 90%)`,
+                      },
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: `linear-gradient(180deg, transparent 60%, ${alpha(colors.accentGreen, 0.03)} 100%)`,
+                        pointerEvents: 'none',
+                      },
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `${skeuShadows.raisedHover}, 0 0 30px ${alpha(colors.accentGreen, 0.15)}`,
+                        borderColor: alpha(colors.accentGreen, 0.3),
+                      },
+                      '&:active': {
+                        transform: 'translateY(1px)',
+                        boxShadow: skeuShadows.pressed,
+                      },
+                    }}
+                  >
+                    <Screw position="tl" />
+                    <Screw position="tr" />
+                    <Screw position="bl" />
+                    <Screw position="br" />
+                    <Box display="flex" flexDirection="column" alignItems="center" gap={2} position="relative" zIndex={2}>
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: '50%',
+                          background: alpha(colors.accentGreen, 0.1),
+                          boxShadow: `0 0 24px ${alpha(colors.accentGreen, 0.2)}`,
+                        }}
+                      >
+                        <ScannerIcon sx={{ fontSize: 56, color: colors.accentGreen, filter: `drop-shadow(0 0 8px ${alpha(colors.accentGreen, 0.5)})` }} />
+                      </Box>
+                      <Typography variant="h4" fontWeight="bold" sx={{ color: colors.textPrimary }}>
+                        Scanner Barcode
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: colors.textSecondary, textAlign: 'center' }}>
+                        Identifica ricambi da codice
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              {/* ── Footer status bar ── */}
+              <Box
+                sx={{
+                  mt: 6,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 3,
+                  alignItems: 'center',
+                }}
+              >
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <LEDIndicator color={colors.accentGreen} size={6} />
+                  <Typography variant="caption" sx={{ color: colors.textMuted, letterSpacing: '0.05em' }}>
+                    SYSTEM ONLINE
+                  </Typography>
+                </Box>
+                <Box sx={{ width: 1, height: 12, bgcolor: colors.borderMid }} />
+                <Typography variant="caption" sx={{ color: colors.textMuted, letterSpacing: '0.05em' }}>
+                  {printers.length} MODELS LOADED
+                </Typography>
+                <Box sx={{ width: 1, height: 12, bgcolor: colors.borderMid }} />
+                <Typography variant="caption" sx={{ color: colors.textMuted, letterSpacing: '0.05em' }}>
+                  KONICA MINOLTA
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {/* ═══════════════════════════════════════ */}
+          {/* ERROR CODES SECTION                    */}
+          {/* ═══════════════════════════════════════ */}
+          {expandedSection === 'errors' && (
+            <Box className="skeu-slide-in">
+              {/* Back Button */}
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => {
+                  setExpandedSection(null);
+                  setSelectedModel('');
+                  setErrorResults([]);
+                }}
+                sx={{
+                  mb: 3,
+                  borderRadius: 3,
+                  px: 3,
+                  borderColor: colors.borderLight,
+                  color: colors.textSecondary,
+                  '&:hover': {
+                    borderColor: colors.accentBlue,
+                    color: colors.accentBlue,
+                  },
+                }}
+              >
+                Torna alla Home
+              </Button>
+
+              {/* Section Title */}
+              <Box display="flex" alignItems="center" gap={2} mb={3}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    background: alpha(colors.accentBlue, 0.1),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <BugIcon sx={{ color: colors.accentBlue, fontSize: 28 }} />
+                </Box>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 800,
+                    color: colors.textPrimary,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  Error Code Search
+                </Typography>
+                <LEDIndicator color={colors.accentBlue} />
+              </Box>
+
+              {/* Model Selector Panel */}
+              <Paper elevation={0} sx={{ p: 3, borderRadius: 3, mb: 3 }}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Seleziona Modello"
+                  value={selectedModel}
+                  onChange={(e) => {
+                    setSelectedModel(e.target.value);
+                    setErrorResults([]);
+                  }}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <PrintIcon sx={{ color: colors.textSecondary }} />
+                        </InputAdornment>
+                      ),
+                    }
+                  }}
+                >
+                  <MenuItem value=""><em>Seleziona un modello</em></MenuItem>
+                  {printers.map((p) => (
+                    <MenuItem key={p.id} value={p.model_name}>
+                      {p.model_name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Paper>
+
+              {/* Search Controls Panel */}
+              <Paper elevation={0} sx={{ p: 4, borderRadius: 3, mb: 4 }}>
+                <Grid container spacing={3} alignItems="center">
+                  <Grid size={{ xs: 12, md: 7 }}>
+                    <AutocompleteSearch
+                      model={selectedModel}
+                      onSelect={(code) => {
+                        setCodeQuery(code);
+                        handleErrorSearch(code);
+                      }}
+                      onQueryChange={setCodeQuery}
+                      placeholder="Enter Error Code (e.g. C-XXXX)..."
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 6, md: 2.5 }}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      size="large"
+                      onClick={() => handleErrorSearch()}
+                      disabled={isPending || !selectedModel}
+                      sx={{
+                        height: 56,
+                        borderRadius: 3,
+                        background: `linear-gradient(180deg, ${colors.accentBlue} 0%, ${colors.accentBlueDim} 100%)`,
+                      }}
+                      startIcon={!isPending && <SearchIcon />}
+                    >
+                      {isPending ? <CircularProgress size={24} color="inherit" /> : 'Search'}
+                    </Button>
+                  </Grid>
+                  <Grid size={{ xs: 6, md: 2.5 }}>
+                    <Button
+                      fullWidth
+                      startIcon={<TuneIcon />}
+                      onClick={() => setShowDipSwitches(true)}
+                      variant="contained"
+                      disabled={!selectedModel}
+                      sx={{
+                        height: 56,
+                        borderRadius: 3,
+                        background: `linear-gradient(180deg, ${alpha(colors.accentCyan, 0.9)} 0%, ${alpha(colors.accentBlueDim, 0.95)} 100%)`,
+                        border: `1px solid ${alpha(colors.accentCyan, 0.3)}`,
+                        boxShadow: `
+                          0 4px 12px ${alpha(colors.accentCyan, 0.2)},
+                          inset 0 1px 0 ${alpha('#ffffff', 0.15)}
+                        `,
+                      }}
+                    >
+                      DipSW
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {showDipSwitches && selectedModel && (
+                <DipSwitchViewer
+                  model={selectedModel}
+                  target={dipSwitchTarget}
+                  onClose={() => { setShowDipSwitches(false); setDipSwitchTarget(null); }}
+                />
+              )}
+
+              {/* Error Results */}
+              <Stack spacing={3}>
+                {errorResults.map((err) => (
+                  <ErrorCard key={err.id} error={err} onDipSwitchClick={onDipSwitchClick} model={selectedModel} />
+                ))}
+                {errorResults.length === 0 && !isPending && codeQuery && (
+                  <Box
+                    textAlign="center"
+                    py={6}
+                    sx={{
+                      color: colors.textSecondary,
+                      borderRadius: 3,
+                      background: alpha(colors.bgSurface, 0.3),
+                      border: `1px dashed ${colors.borderMid}`,
+                    }}
+                  >
+                    <Typography variant="body1">No exact match found.</Typography>
+                    <Typography variant="caption" sx={{ color: colors.textMuted }}>
+                      Try a different error code or check the model selection.
+                    </Typography>
+                  </Box>
+                )}
+              </Stack>
+            </Box>
+          )}
+
+          {/* ═══════════════════════════════════════ */}
+          {/* SPARE PARTS SECTION                    */}
+          {/* ═══════════════════════════════════════ */}
+          {expandedSection === 'parts' && (
+            <Box className="skeu-slide-in">
+              {/* Back Button */}
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => {
+                  setExpandedSection(null);
+                  setSelectedModel('');
+                  setErrorResults([]);
+                  setPartResults([]);
+                  setActiveTab(0);
+                }}
+                sx={{
+                  mb: 3,
+                  borderRadius: 3,
+                  px: 3,
+                  borderColor: colors.borderLight,
+                  color: colors.textSecondary,
+                  '&:hover': {
+                    borderColor: colors.accentRed,
+                    color: colors.accentRed,
+                  },
+                }}
+              >
+                Torna alla Home
+              </Button>
+
+              {/* Section Title */}
+              <Box display="flex" alignItems="center" gap={2} mb={3}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    background: alpha(colors.accentRed, 0.1),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <BuildIcon sx={{ color: colors.accentRed, fontSize: 28 }} />
+                </Box>
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 800,
+                    color: colors.textPrimary,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  Spare Parts & Maintenance
+                </Typography>
+                <LEDIndicator color={colors.accentRed} />
+              </Box>
+
+              {/* Physical Tabs */}
+              <Paper elevation={0} sx={{ borderRadius: 3, overflow: 'hidden', mb: 3, p: 0 }}>
+                <Tabs
+                  value={activeTab}
+                  onChange={(e, v) => setActiveTab(v)}
+                  variant="fullWidth"
+                >
+                  <Tab
+                    icon={<SettingsIcon />}
+                    label="Spare Parts"
+                    iconPosition="start"
+                  />
+                  <Tab
+                    icon={<PartIcon />}
+                    label="Maintenance"
+                    iconPosition="start"
+                  />
+                </Tabs>
+              </Paper>
+
+              {/* === CONTENT: SPARE PARTS === */}
+              {activeTab === 0 && (
+                <Box className="skeu-fade-in">
+                  <Paper elevation={0} sx={{ p: 4, borderRadius: 3, mb: 4, position: 'relative' }}>
+                    <Screw position="tl" />
+                    <Screw position="tr" />
+
+                    {/* Sub-mode toggle */}
+                    <Box display="flex" gap={2} mb={3} borderBottom={1} borderColor="divider" pb={2} flexWrap="wrap">
+                      <Button
+                        onClick={() => setPartSearchMode('smart')}
+                        variant={partSearchMode === 'smart' ? 'contained' : 'outlined'}
+                        sx={{
+                          borderRadius: 20,
+                          ...(partSearchMode === 'smart' && {
+                            background: `linear-gradient(180deg, ${alpha(colors.accentCyan, 0.9)} 0%, ${alpha(colors.accentBlueDim, 0.95)} 100%)`,
+                          }),
+                        }}
+                      >
+                        Smart Search
+                      </Button>
+                      <Button
+                        onClick={() => setPartSearchMode('section')}
+                        variant={partSearchMode === 'section' ? 'contained' : 'outlined'}
+                        sx={{
+                          borderRadius: 20,
+                          ...(partSearchMode === 'section' && {
+                            background: `linear-gradient(180deg, ${alpha(colors.accentCyan, 0.9)} 0%, ${alpha(colors.accentBlueDim, 0.95)} 100%)`,
+                          }),
+                        }}
+                      >
+                        Browse Sections
+                      </Button>
+
+                      <Box flexGrow={1} />
+                      <Button
+                        variant="outlined"
+                        startIcon={<FavoriteIcon />}
+                        onClick={() => setIsCartOpen(true)}
+                        sx={{
+                          borderColor: alpha(colors.accentRed, 0.5),
+                          color: colors.accentRed,
+                          '&:hover': {
+                            borderColor: colors.accentRed,
+                            background: alpha(colors.accentRed, 0.08),
+                            boxShadow: `0 0 12px ${alpha(colors.accentRed, 0.2)}`,
+                          },
+                        }}
+                      >
+                        Favorites ({cart.length})
+                      </Button>
+                    </Box>
+
+                    {partSearchMode === 'smart' ? (
+                      <Grid container spacing={2}>
+                        <Grid size={{ xs: 12 }}>
+                          <PartSearchAutocomplete
+                            model=""
+                            onSelect={(part) => {
+                              if (part) setPartResults([part]);
+                            }}
+                            onResults={(results) => {
+                              setPartResults(results);
+                            }}
+                            placeholder="Search Part Code (Global Search)..."
+                          />
+                        </Grid>
+                      </Grid>
+                    ) : (
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            select
+                            fullWidth
+                            label="Seleziona Modello"
+                            value={selectedModel}
+                            onChange={(e) => {
+                              setSelectedModel(e.target.value);
+                              setPartSection('');
+                              setPartResults([]);
+                            }}
+                            variant="outlined"
+                          >
+                            <MenuItem value=""><em>Seleziona un modello</em></MenuItem>
+                            {printers.map((p) => (
+                              <MenuItem key={p.id} value={p.model_name}>
+                                {p.model_name}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            select
+                            fullWidth
+                            label="Seleziona Sezione"
+                            value={partSection}
+                            onChange={(e) => setPartSection(e.target.value)}
+                            disabled={!selectedModel}
+                            variant="outlined"
+                          >
+                            <MenuItem value=""><em>Seleziona Sezione</em></MenuItem>
+                            {partSectionsList.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                          </TextField>
+                        </Grid>
+                      </Grid>
+                    )}
+                  </Paper>
+
+                  {/* Parts Results Table */}
+                  {partResults.length > 0 && (
+                    <Paper elevation={0} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                      <Box
+                        p={2}
+                        sx={{
+                          background: `linear-gradient(180deg, ${colors.bgSurface} 0%, ${alpha(colors.bgPanel, 0.95)} 100%)`,
+                          borderBottom: `2px solid ${colors.borderLight}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                        }}
+                      >
+                        <LEDIndicator color={colors.accentGreen} size={6} />
+                        <Typography variant="h6" fontWeight={700}>Results ({partResults.length})</Typography>
+                      </Box>
+                      <TableContainer sx={{ maxHeight: 600 }}>
+                        <Table stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell width={70}>Pg</TableCell>
+                              <TableCell width={60}>Key</TableCell>
+                              <TableCell>Model</TableCell>
+                              <TableCell>Code</TableCell>
+                              <TableCell>Name</TableCell>
+                              <TableCell width={60}>Qty</TableCell>
+                              <TableCell>Section</TableCell>
+                              <TableCell width={80}>Fav</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {partResults.map((part, idx) => {
+                              const uniqueId = `${part.model}-${part.page_number}-${part.part_code}-${part.section_name}-${part.ref_number}`;
+                              const isFav = cart.some(i => `${i.model}-${i.page_number}-${i.part_code}-${i.section_name}-${i.ref_number}` === uniqueId);
+
+                              return (
+                                <TableRow key={uniqueId || idx} hover>
+                                  <TableCell>{part.page_number}</TableCell>
+                                  <TableCell>{part.ref_number}</TableCell>
+                                  <TableCell><Chip label={part.model} size="small" color="primary" variant="outlined" /></TableCell>
+                                  <TableCell sx={{ fontFamily: 'monospace', color: colors.accentBlue, fontWeight: 'bold' }}>
+                                    {part.part_code}
+                                  </TableCell>
+                                  <TableCell>{part.name}</TableCell>
+                                  <TableCell>{part.quantity}</TableCell>
+                                  <TableCell><Chip label={part.section_name} size="small" /></TableCell>
+                                  <TableCell>
+                                    <IconButton
+                                      onClick={() => {
+                                        if (isFav) {
+                                          const itemToRemove = cart.find(c => `${c.model}-${c.page_number}-${c.part_code}-${c.section_name}-${c.ref_number}` === uniqueId);
+                                          if (itemToRemove) removeFromCart(itemToRemove.cartId);
+                                          toast.success('Removed from favorites');
+                                        } else {
+                                          addToCart(part);
+                                        }
+                                      }}
+                                      sx={{
+                                        color: isFav ? colors.accentRed : colors.textSecondary,
+                                        '&:hover': {
+                                          color: colors.accentRed,
+                                          boxShadow: `0 0 12px ${alpha(colors.accentRed, 0.3)}`,
+                                        },
+                                      }}
+                                    >
+                                      {isFav ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                                    </IconButton>
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Paper>
+                  )}
+                </Box>
+              )}
+
+              {/* === CONTENT: MAINTENANCE === */}
+              {activeTab === 1 && (
+                <Box className="skeu-fade-in">
+                  <Paper elevation={0} sx={{ p: 3, borderRadius: 3, mb: 3, position: 'relative' }}>
+                    <Screw position="tl" />
+                    <Screw position="tr" />
+
+                    <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', color: colors.accentBlue }}>
+                      Maintenance Schedule
+                    </Typography>
+
+                    {/* Model Selector */}
+                    <Box sx={{ mb: 3 }}>
+                      <TextField
+                        select
+                        fullWidth
+                        label="Select Model"
+                        value={selectedMaintenanceModel}
+                        onChange={(e) => setSelectedMaintenanceModel(e.target.value)}
+                        variant="outlined"
+                        sx={{ maxWidth: '400px' }}
+                      >
+                        {Object.keys(maintenanceData).sort().map((model) => (
+                          <MenuItem key={model} value={model}>
+                            {model}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Box>
+
+                    {maintenanceData[selectedMaintenanceModel]?.map((section, idx) => (
+                      <Accordion key={idx}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <LEDIndicator color={colors.accentAmber} size={6} />
+                            <Typography fontWeight="bold">{section.name}</Typography>
+                          </Box>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <TableContainer>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Code</TableCell>
+                                  <TableCell>Name</TableCell>
+                                  <TableCell>Qty</TableCell>
+                                  <TableCell>Life (Yield)</TableCell>
+                                  <TableCell width={80}>Fav</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {section.items.map((item: any, i: number) => {
+                                  const maintenancePart: Part = {
+                                    part_code: item.code,
+                                    name: item.name,
+                                    section_name: section.name,
+                                    model: selectedMaintenanceModel,
+                                    quantity: item.qty,
+                                    page_number: item.page_key?.split('-')[0] || '',
+                                    ref_number: `${section.name}-${i}`,
+                                  };
+
+                                  const uniqueId = `${maintenancePart.model}-${maintenancePart.ref_number}-${maintenancePart.part_code}`;
+                                  const isFav = cart.some(c => `${c.model}-${c.ref_number}-${c.part_code}` === uniqueId);
+
+                                  return (
+                                    <TableRow key={i} hover>
+                                      <TableCell sx={{ fontFamily: 'monospace', color: colors.accentBlue, fontWeight: 'bold' }}>
+                                        {item.code}
+                                      </TableCell>
+                                      <TableCell>{item.name}</TableCell>
+                                      <TableCell>{item.qty}</TableCell>
+                                      <TableCell>{item.life}</TableCell>
+                                      <TableCell>
+                                        <IconButton
+                                          onClick={() => {
+                                            if (isFav) {
+                                              const itemToRemove = cart.find(c => `${c.model}-${c.ref_number}-${c.part_code}` === uniqueId);
+                                              if (itemToRemove) removeFromCart(itemToRemove.cartId);
+                                              toast.success('Removed from favorites');
+                                            } else {
+                                              addToCart(maintenancePart);
+                                            }
+                                          }}
+                                          sx={{
+                                            color: isFav ? colors.accentRed : colors.textSecondary,
+                                            '&:hover': {
+                                              color: colors.accentRed,
+                                              boxShadow: `0 0 12px ${alpha(colors.accentRed, 0.3)}`,
+                                            },
+                                          }}
+                                        >
+                                          {isFav ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                                        </IconButton>
+                                      </TableCell>
+                                    </TableRow>
+                                  )
+                                })}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </AccordionDetails>
+                      </Accordion>
+                    ))}
+                  </Paper>
+                </Box>
+              )}
+            </Box>
+          )}
+
+
+
+        </Stack>
+      </Container>
+
+
+      {/* ═══════════════════════════════════════ */}
+      {/* FAVORITES DRAWER                       */}
+      {/* ═══════════════════════════════════════ */}
+      <Drawer
+        anchor="right"
+        open={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        PaperProps={{
+          sx: {
+            width: { xs: '100%', sm: 380 },
+          }
+        }}
+      >
+        {/* Drawer Header */}
+        <Box
+          p={2}
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          sx={{
+            borderBottom: `2px solid ${colors.borderLight}`,
+            background: `linear-gradient(180deg, ${colors.bgSurface} 0%, ${colors.bgPanel} 100%)`,
+          }}
+        >
+          <Typography variant="h6" display="flex" alignItems="center" gap={1} fontWeight={700}>
+            <FavoriteIcon sx={{ color: colors.accentRed }} /> Favorites List
+          </Typography>
+          <Chip
+            label={cart.length}
+            size="small"
+            sx={{
+              background: alpha(colors.accentRed, 0.2),
+              color: colors.accentRed,
+              fontWeight: 700,
+              border: `1px solid ${alpha(colors.accentRed, 0.3)}`,
+            }}
+          />
+        </Box>
+
+        {/* Drawer Items */}
+        <List sx={{ flex: 1, overflow: 'auto' }}>
+          {cart.length === 0 && (
+            <Box p={4} textAlign="center" sx={{ color: colors.textSecondary }}>
+              <FavoriteBorderIcon sx={{ fontSize: 48, color: colors.textMuted, mb: 1 }} />
+              <Typography variant="body2">No favorites yet.</Typography>
+              <Typography variant="caption" sx={{ color: colors.textMuted }}>
+                Add parts from search results.
+              </Typography>
+            </Box>
+          )}
+          {cart.map(item => (
+            <div key={item.cartId}>
+              <ListItem
+                secondaryAction={
+                  <IconButton
+                    edge="end"
+                    onClick={() => removeFromCart(item.cartId)}
+                    sx={{
+                      color: colors.textMuted,
+                      '&:hover': { color: colors.accentRed },
+                    }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                }
+              >
+                <ListItemText
+                  primary={
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography fontFamily="monospace" fontWeight="bold" sx={{ color: colors.accentBlue }}>
+                        {item.part_code}
+                      </Typography>
+                      <Box display="flex" alignItems="center" gap={0.5} ml={1}>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            const updated = cart.map(c =>
+                              c.cartId === item.cartId
+                                ? { ...c, quantity: String(Math.max(1, parseInt(c.quantity || '1') - 1)) }
+                                : c
+                            );
+                            setCart(updated);
+                          }}
+                          sx={{ color: colors.textSecondary }}
+                        >
+                          -
+                        </IconButton>
+                        <Chip
+                          label={item.quantity || '1'}
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            minWidth: 32,
+                          }}
+                        />
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            const updated = cart.map(c =>
+                              c.cartId === item.cartId
+                                ? { ...c, quantity: String(parseInt(c.quantity || '1') + 1) }
+                                : c
+                            );
+                            setCart(updated);
+                          }}
+                          sx={{ color: colors.textSecondary }}
+                        >
+                          +
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  }
+                  secondary={
+                    <Typography variant="caption" sx={{ color: colors.textMuted }}>
+                      {item.name} | {item.model} - {item.section_name}
+                    </Typography>
+                  }
+                />
+              </ListItem>
+              <Divider />
+            </div>
+          ))}
+        </List>
+
+        {/* Drawer Footer */}
+        <Box
+          p={2}
+          display="flex"
+          flexDirection="column"
+          gap={1}
+          sx={{
+            borderTop: `2px solid ${colors.borderLight}`,
+            background: `linear-gradient(180deg, ${colors.bgPanel} 0%, ${colors.bgSurface} 100%)`,
+          }}
+        >
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => { setCart([]); toast.success('Favorites cleared'); }}
+            sx={{
+              borderColor: alpha(colors.accentRed, 0.3),
+              color: colors.accentRed,
+              '&:hover': {
+                borderColor: colors.accentRed,
+                background: alpha(colors.accentRed, 0.08),
+              },
+            }}
+          >
+            Empty Favorites
+          </Button>
+          <Box display="flex" gap={1}>
+            <Button
+              variant="outlined"
+              startIcon={<CopyIcon />}
+              onClick={copyCart}
+              disabled={cart.length === 0}
+              fullWidth
+            >
+              Copy
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<PrintIcon />}
+              onClick={printCart}
+              disabled={cart.length === 0}
+              fullWidth
+            >
+              Print
+            </Button>
+          </Box>
+        </Box>
+      </Drawer>
+
+    </Box>
+  );
+}�
+ *cascade08�
+�
+*cascade08�
+�
+ *cascade08�
+�*cascade08�� *cascade08��*cascade08��h *cascade08�h�h*cascade08�hĂ *cascade08Ăł*cascade08ł�� *cascade08����*cascade08���� *cascade08"(58378992b4617a57eb2a667bb5b15ba4f3ccc9262Afile:///c:/Users/forza/Gemini/AppTecnico3.0/frontend/app/page.tsx:+file:///c:/Users/forza/Gemini/AppTecnico3.0

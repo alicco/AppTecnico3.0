@@ -379,7 +379,7 @@ export default function Home() {
               lineHeight: 1.1,
             }}
           >
-            <span className="text-gradient-brand">KM Bourne</span>
+            <span className="text-gradient-brand">KM BOURNE</span>
           </h1>
 
           <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
@@ -551,7 +551,7 @@ export default function Home() {
             textAlign: 'center',
           }}
         >
-          Developed by AISAC · KM Bourne v3.0
+          Developed by AISAC · KM BOURNE v3.0
         </div>
       </main>
     );

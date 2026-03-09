@@ -363,12 +363,6 @@ export default function Home() {
         />
 
         <div className="animate-fade-up" style={{ textAlign: 'center', marginBottom: 60, maxWidth: 560 }}>
-          {/* Logo mark */}
-          <img
-            src="/logo_km.svg"
-            alt="Konica Minolta Logo"
-            style={{ height: 50, margin: '0 auto 20px', display: 'block' }}
-          />
 
           <h1
             style={{
@@ -379,7 +373,7 @@ export default function Home() {
               lineHeight: 1.1,
             }}
           >
-            <span className="text-gradient-brand">KM BOURNE</span>
+            <span className="text-gradient-brand">KM Insight</span>
           </h1>
 
           <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
@@ -551,7 +545,7 @@ export default function Home() {
             textAlign: 'center',
           }}
         >
-          Developed by AISAC · KM BOURNE v3.0
+          Developed by AISAC · KM Insight v3.0
         </div>
       </main>
     );

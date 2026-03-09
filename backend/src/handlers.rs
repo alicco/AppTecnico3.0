@@ -441,7 +441,8 @@ pub async fn search_parts(
     "#);
     
     let mut args_count = 0;
-    let mut query_q = String::new();
+    let mut query_q_code = String::new(); // for part_code prefix match
+    let mut query_q_name = String::new(); // for name contains match
     let mut models_vec: Vec<String> = vec![];
 
     // MODEL FILTER (Optional)
@@ -461,23 +462,31 @@ pub async fn search_parts(
         }
     }
 
-    // TEXT SEARCH - STRICT STARTS WITH
+    // TEXT SEARCH - prefix on part_code OR contains on name
     if let Some(ref q) = params.q {
         if !q.trim().is_empty() {
+            let trimmed = q.trim();
+            query_q_code = format!("{}%", trimmed.to_uppercase());
+            query_q_name = format!("%{}%", trimmed);
             args_count += 1;
-            sql.push_str(&format!(" AND part_code ILIKE ${}", args_count));
-            query_q = format!("{}%", q.trim().to_uppercase()); // Uppercase query for case-insensitive prefix match
+            let code_arg = args_count;
+            args_count += 1;
+            let name_arg = args_count;
+            sql.push_str(&format!(
+                " AND (part_code ILIKE ${} OR name ILIKE ${})",
+                code_arg, name_arg
+            ));
         }
     }
 
     sql.push_str(" ORDER BY part_code ASC");
-    
+
     let limit = params.limit.unwrap_or(500); // Higher limit for section views
     args_count += 1;
     sql.push_str(&format!(" LIMIT ${}", args_count));
 
     let mut query = sqlx::query_as::<_, crate::models::ManualSparePart>(&sql);
-    
+
     // Bind model filter if present
     if !models_vec.is_empty() {
         query = query.bind(&models_vec);
@@ -488,10 +497,11 @@ pub async fn search_parts(
             query = query.bind(section);
         }
     }
-    
+
     if let Some(ref q) = params.q {
         if !q.trim().is_empty() {
-             query = query.bind(&query_q);
+            query = query.bind(&query_q_code);
+            query = query.bind(&query_q_name);
         }
     }
 

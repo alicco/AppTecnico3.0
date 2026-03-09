@@ -1,611 +1,599 @@
-import {
-    Card,
-    CardContent,
-    Typography,
-    Box,
-    Chip,
-    Stack,
-    Grid,
-    useTheme,
-    alpha,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails
-} from '@mui/material';
-import {
-    Warning as WarningIcon,
-    CheckCircle as CheckCircleIcon,
-    Info as InfoIcon,
-    Build as BuildIcon,
-    Construction as ConstructionIcon,
-    Settings as SettingsIcon,
-    ExpandMore as ExpandMoreIcon
-} from '@mui/icons-material';
+'use client';
+
 import { useState, ReactElement } from 'react';
 import { SparePartsSearch } from './SparePartsSearch';
 
 interface SparePart {
-    oem_code: string;
-    description: string;
-    ranking: number;
-    image_url?: string;
-    [key: string]: unknown;
+  oem_code: string;
+  description: string;
+  ranking: number;
+  image_url?: string;
+  [key: string]: unknown;
 }
 
 interface ErrorProps {
-    error: {
-        code: string;
-        classification?: string;
-        cause?: string;
-        measures?: string;
-        solution?: string;
-        estimated_abnormal_parts?: string;
-        correction?: string;
-        faulty_part_isolation?: string;
-        note?: string;
-        parts?: SparePart[];
-    };
-    onDipSwitchClick?: (sw: number, bit: number) => void;
-    model?: string;
+  error: {
+    code: string;
+    classification?: string;
+    cause?: string;
+    measures?: string;
+    solution?: string;
+    estimated_abnormal_parts?: string;
+    correction?: string;
+    faulty_part_isolation?: string;
+    note?: string;
+    parts?: SparePart[];
+  };
+  onDipSwitchClick?: (sw: number, bit: number) => void;
+  model?: string;
 }
 
-export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
-    const theme = useTheme();
-    const [partSearchOpen, setPartSearchOpen] = useState(false);
-    const [partQuery, setPartQuery] = useState('');
+// ─── Accordion ────────────────────────────────────────────────────────────────
 
-    // Extract Model Name from props if available? 
-    // Wait, ErrorCard receives 'error' object which has printer_id but maybe not model name directly?
-    // The 'error' object in ErrorProps doesn't have model name.
-    // However, the parent page knows the selected model.
-    // Ideally we should pass model name to ErrorCard.
-    // For now, let's assume we can get it or we need to update props.
-    // Checking page.tsx: <ErrorCard key={err.id} error={err} ... />
-    // The 'err' object from 'searchErrors' has 'printer: { model_name }' join? 
-    // In handlers.rs: SELECT e.* FROM error_codes e JOIN printers p ...
-    // But struct ErrorCode doesn't have printer model.
-    // However, the user SELECTED the model in the dropdown in page.tsx.
-    // We should pass 'model={selectedModel}' to ErrorCard.
+interface AccordionProps {
+  label: string;
+  icon: ReactElement;
+  iconColor: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}
 
-    // TEMPORARY FIX: We need to update props to include model.
-    // For this step, I'll update the component structure and Logic, then I'll update Page.tsx to pass model.
-
-    // Helper for general text - only detects DipSwitches
-    const renderLinkedText = (text: string | undefined, isPreWrap = false) => {
-        if (!text) return null;
-
-        const dipswRegex = /(?:DipSW|SW)\s*(\d+)-(\d+)/gi;
-        const matches = [...text.matchAll(dipswRegex)];
-
-        if (matches.length === 0) {
-            return isPreWrap ? <Box component="span" sx={{ whiteSpace: 'pre-wrap' }}>{text}</Box> : text;
-        }
-
-        const elements = [];
-        let cursor = 0;
-
-        for (const match of matches) {
-            const [fullMatch, swStr, bitStr] = match;
-            const index = match.index!;
-
-            if (index > cursor) {
-                elements.push(
-                    <Box component="span" key={`txt-${index}`} sx={{ whiteSpace: isPreWrap ? 'pre-wrap' : 'normal' }}>
-                        {text.slice(cursor, index)}
-                    </Box>
-                );
-            }
-
-            elements.push(
-                <Chip
-                    key={`link-${index}`}
-                    size="small"
-                    label={fullMatch}
-                    icon={<SettingsIcon style={{ fontSize: 14 }} />}
-                    color="secondary"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onDipSwitchClick?.(parseInt(swStr), parseInt(bitStr));
-                    }}
-                    sx={{
-                        mx: 0.5,
-                        height: 24,
-                        fontSize: '0.75rem',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        '&:hover': {
-                            backgroundColor: theme.palette.secondary.dark,
-                        }
-                    }}
-                />
-            );
-
-            cursor = index + fullMatch.length;
-        }
-
-        if (cursor < text.length) {
-            elements.push(
-                <Box component="span" key={`txt-end`} sx={{ whiteSpace: isPreWrap ? 'pre-wrap' : 'normal' }}>
-                    {text.slice(cursor)}
-                </Box>
-            );
-        }
-
-        return <>{elements}</>;
-    };
-
-    // Helper for spare parts section - detects DipSwitches AND part patterns
-    const renderLinkedTextWithParts = (text: string | undefined, isPreWrap = false) => {
-        if (!text) return null;
-
-        // Define all patterns - ORDER MATTERS! More specific patterns first
-        const patterns = [
-            // 1. DipSW X-Y or SW X-Y
-            {
-                regex: /(?:DipSW|SW)\s*(\d+)-(\d+)/gi,
-                type: 'dipswitch' as const,
-                icon: <SettingsIcon style={{ fontSize: 14 }} />,
-                color: 'secondary' as const
-            },
-            // 2. Part names WITH acronym in parentheses (e.g., "Printer control board (PRCB)", "Fan Motor (FM1)")
-            // This must come BEFORE standalone acronym detection to avoid duplicates
-            {
-                regex: /((?:Fusing|Transfer|Drum|Developer|Charge|Cleaning|DC\s*power\s*supply|Printer\s*control|Paper\s*lift\s*motor|Upper\s*limit\s*sensor|Fan\s*motor|Motor|Clutch|Solenoid|Photo\s*sensor|Photointerrupter|Temperature\s*sensor|Thermostat|Switch)\s*(?:Unit|Roller|Assembly|Board|\/\d+)?\s*\([A-Z0-9]{2,6}\))/gi,
-                type: 'partname_with_acronym' as const,
-                icon: <BuildIcon style={{ fontSize: 14 }} />,
-                color: 'success' as const
-            },
-            // 3. Part names WITHOUT acronym
-            {
-                regex: /((?:Fusing|Transfer|Drum|Developer|Charge|Cleaning|DC\s*power\s*supply|Printer\s*control|Paper\s*lift\s*motor|Upper\s*limit\s*sensor|Fan\s*motor|Motor|Clutch|Solenoid|Photo\s*sensor|Photointerrupter|Temperature\s*sensor|Thermostat|Switch)\s*(?:Unit|Roller|Assembly|Board|\/\d+)?)/gi,
-                type: 'partname' as const,
-                icon: <BuildIcon style={{ fontSize: 14 }} />,
-                color: 'success' as const
-            },
-            // 4. Standalone acronyms (only if not already matched by compound pattern)
-            {
-                regex: /\b([A-Z]{2,6}\d*|[A-Z]+\d{1,3})\b/g,
-                type: 'acronym' as const,
-                icon: <BuildIcon style={{ fontSize: 14 }} />,
-                color: 'success' as const
-            },
-            // 5. Alphanumeric part codes (8-12 chars)
-            {
-                regex: /\b([A-Z0-9]{8,12})\b/g,
-                type: 'partcode' as const,
-                icon: <BuildIcon style={{ fontSize: 14 }} />,
-                color: 'success' as const
-            }
-        ];
-
-        // Find all matches from all patterns
-        const allMatches: Array<{
-            index: number;
-            length: number;
-            text: string;
-            type: string;
-            icon: ReactElement;
-            color: 'secondary' | 'success';
-            swNum?: number;
-            bitNum?: number;
-        }> = [];
-
-        for (const pattern of patterns) {
-            const matches = [...text.matchAll(pattern.regex)];
-            for (const match of matches) {
-                const index = match.index!;
-                const fullMatch = match[0];
-
-                // Skip if this overlaps with an existing match
-                const overlaps = allMatches.some(m =>
-                    (index >= m.index && index < m.index + m.length) ||
-                    (index + fullMatch.length > m.index && index + fullMatch.length <= m.index + m.length)
-                );
-
-                if (!overlaps) {
-                    if (pattern.type === 'dipswitch') {
-                        allMatches.push({
-                            index,
-                            length: fullMatch.length,
-                            text: fullMatch,
-                            type: pattern.type,
-                            icon: pattern.icon,
-                            color: pattern.color,
-                            swNum: parseInt(match[1]),
-                            bitNum: parseInt(match[2])
-                        });
-                    } else {
-                        allMatches.push({
-                            index,
-                            length: fullMatch.length,
-                            text: fullMatch,
-                            type: pattern.type,
-                            icon: pattern.icon,
-                            color: pattern.color
-                        });
-                    }
-                }
-            }
-        }
-
-        // Sort by index
-        allMatches.sort((a, b) => a.index - b.index);
-
-        if (allMatches.length === 0) {
-            return isPreWrap ? <Box component="span" sx={{ whiteSpace: 'pre-wrap' }}>{text}</Box> : text;
-        }
-
-        const elements = [];
-        let cursor = 0;
-
-        for (const match of allMatches) {
-            // Text before match
-            if (match.index > cursor) {
-                elements.push(
-                    <Box component="span" key={`txt-${match.index}`} sx={{ whiteSpace: isPreWrap ? 'pre-wrap' : 'normal' }}>
-                        {text.slice(cursor, match.index)}
-                    </Box>
-                );
-            }
-
-            // The clickable chip
-            if (match.type === 'dipswitch') {
-                elements.push(
-                    <Chip
-                        key={`link-${match.index}`}
-                        size="small"
-                        label={match.text}
-                        icon={match.icon as ReactElement}
-                        color={match.color}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDipSwitchClick?.(match.swNum!, match.bitNum!);
-                        }}
-                        sx={{
-                            mx: 0.5,
-                            height: 24,
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            '&:hover': {
-                                backgroundColor: theme.palette.secondary.dark,
-                            }
-                        }}
-                    />
-                );
-            } else {
-                // Part search (acronym, partname, or partcode)
-                elements.push(
-                    <Chip
-                        key={`link-${match.index}`}
-                        size="small"
-                        label={match.text}
-                        icon={match.icon as ReactElement}
-                        color={match.color}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (!model) {
-                                alert('Please select a model first');
-                                return;
-                            }
-                            setPartQuery(match.text);
-                            setPartSearchOpen(true);
-                        }}
-                        sx={{
-                            mx: 0.5,
-                            height: 24,
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            '&:hover': {
-                                backgroundColor: theme.palette.success.dark,
-                            }
-                        }}
-                    />
-                );
-            }
-
-            cursor = match.index + match.length;
-        }
-
-        // Text after last match
-        if (cursor < text.length) {
-            elements.push(
-                <Box component="span" key={`txt-end`} sx={{ whiteSpace: isPreWrap ? 'pre-wrap' : 'normal' }}>
-                    {text.slice(cursor)}
-                </Box>
-            );
-        }
-
-        return <>{elements}</>;
-    };
-
-    return (
-        <Card
-            elevation={4}
-            sx={{
-                borderRadius: 2,
-                bgcolor: 'background.paper',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: theme.shadows[8],
-                },
-                border: `1px solid ${theme.palette.divider}`
+function Accordion({ label, icon, iconColor, defaultOpen = false, children }: AccordionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div
+      style={{
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 10,
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        type="button"
+        className="accordion-header"
+        onClick={() => setOpen((o) => !o)}
+        style={{ borderRadius: 0 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: iconColor, display: 'flex', alignItems: 'center' }}>{icon}</span>
+          <span
+            style={{
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              color: 'var(--text-secondary)',
             }}
+          >
+            {label}
+          </span>
+        </div>
+        <svg
+          style={{
+            width: 14,
+            height: 14,
+            color: 'var(--text-muted)',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s',
+            flexShrink: 0,
+          }}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
         >
-            <Box
-                sx={{
-                    p: 2,
-                    px: 3,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderBottom: `1px solid ${theme.palette.divider}`,
-                    background: `linear-gradient(45deg, ${alpha(theme.palette.primary.main, 0.05)}, transparent)`
-                }}
-            >
-                <Typography variant="h4" fontWeight={800} color="primary" sx={{ letterSpacing: -0.5, whiteSpace: 'nowrap', fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
-                    {error.code}
-                </Typography>
-                <Chip
-                    label={error.classification || 'Error'}
-                    color="primary"
-                    variant="outlined"
-                    sx={{
-                        fontWeight: 'bold',
-                        borderRadius: 2,
-                        height: 32,
-                        fontSize: '0.9rem'
-                    }}
-                />
-            </Box>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          className="animate-fade-in"
+          style={{ padding: '10px 14px 14px', background: 'var(--bg-elevated)' }}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Stack spacing={2}>
-                    {error.cause && (
-                        <Accordion defaultExpanded disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                <Box display="flex" gap={1.5} alignItems="center">
-                                    <WarningIcon color="warning" fontSize="small" />
-                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
-                                        Cause
-                                    </Typography>
-                                </Box>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Typography variant="body1" color="text.primary">
-                                    {renderLinkedText(error.cause)}
-                                </Typography>
-                            </AccordionDetails>
-                        </Accordion>
-                    )}
+// ─── Icons (inline SVGs) ───────────────────────────────────────────────────────
 
-                    {error.measures && (
-                        <Accordion disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                <Box display="flex" gap={1.5} alignItems="center">
-                                    <InfoIcon color="info" fontSize="small" />
-                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
-                                        Measures
-                                    </Typography>
-                                </Box>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Typography variant="body1" color="text.primary">
-                                    {renderLinkedText(error.measures, true)}
-                                </Typography>
-                            </AccordionDetails>
-                        </Accordion>
-                    )}
+const IcoWarning = (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <path d="m10.29 3.86-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.71-3.14l-8-14a2 2 0 0 0-3.42 0z" />
+    <path d="M12 9v4M12 17h.01" />
+  </svg>
+);
 
-                    {error.solution && (
-                        <Accordion defaultExpanded disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                <Box display="flex" gap={1.5} alignItems="center">
-                                    <CheckCircleIcon color="success" fontSize="small" />
-                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
-                                        Solution
-                                    </Typography>
-                                </Box>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Box color="text.primary">
-                                    {(() => {
-                                        const hasNumbering = /\d+\./.test(error.solution || '');
+const IcoInfo = (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 16v-4M12 8h.01" />
+  </svg>
+);
 
-                                        if (hasNumbering) {
-                                            const steps = (error.solution || '')
-                                                .split(/(?=\b\d+\.\s)/)
-                                                .map(s => s.trim())
-                                                .filter(s => s.length > 0);
+const IcoCheck = (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <path d="m9 11 3 3L22 4" />
+  </svg>
+);
 
-                                            return (
-                                                <Stack spacing={1} component="ol" sx={{ pl: 0, listStyle: 'none', m: 0 }}>
-                                                    {steps.map((step, idx) => {
-                                                        const match = step.match(/^(\d+\.)\s+([\s\S]*)/);
-                                                        if (match) {
-                                                            return (
-                                                                <Box component="li" key={idx} display="flex" gap={1}>
-                                                                    <Typography component="span" color="primary.main" fontWeight="bold" sx={{ minWidth: 24 }}>
-                                                                        {match[1]}
-                                                                    </Typography>
-                                                                    <Typography component="div">
-                                                                        {renderLinkedText(match[2])}
-                                                                    </Typography>
-                                                                </Box>
-                                                            );
-                                                        }
-                                                        return <Box component="li" key={idx} sx={{ pl: 4 }}>{renderLinkedText(step)}</Box>;
-                                                    })}
-                                                </Stack>
-                                            );
-                                        }
+const IcoBuild = (
+  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+  </svg>
+);
 
-                                        return (
-                                            <Stack spacing={1} component="ul" sx={{ pl: 2, m: 0 }}>
-                                                {(error.solution || '').split('\n').map((line, idx) => {
-                                                    const trimmed = line.trim();
-                                                    if (!trimmed) return null;
-                                                    return <Box component="li" key={idx}>{renderLinkedText(trimmed)}</Box>;
-                                                })}
-                                            </Stack>
-                                        );
-                                    })()}
-                                </Box>
-                            </AccordionDetails>
-                        </Accordion>
-                    )}
+const IcoSettings = (
+  <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
 
-                    {error.correction && (
-                        <Accordion disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                <Box display="flex" gap={1.5} alignItems="center">
-                                    {error.correction.toLowerCase().includes('warning') ? (
-                                        <WarningIcon color="error" fontSize="small" />
-                                    ) : (
-                                        <CheckCircleIcon sx={{ color: 'text.secondary' }} fontSize="small" />
-                                    )}
-                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
-                                        Correction
-                                    </Typography>
-                                </Box>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                {error.correction.toLowerCase().includes('warning') ? (
-                                    <Box
-                                        sx={{
-                                            p: 2,
-                                            borderRadius: 2,
-                                            bgcolor: alpha(theme.palette.error.main, 0.1),
-                                            border: `1px solid ${theme.palette.error.main}`,
-                                            color: theme.palette.error.contrastText || 'error.main',
-                                        }}
-                                    >
-                                        <Typography variant="body1" fontWeight="bold" color="error" component="div">
-                                            ⚠️ {renderLinkedText(error.correction, true)}
-                                        </Typography>
-                                    </Box>
-                                ) : (
-                                    <Typography variant="body1" color="text.primary" component="div">
-                                        {renderLinkedText(error.correction, true)}
-                                    </Typography>
-                                )}
-                            </AccordionDetails>
-                        </Accordion>
-                    )}
+// ─── Linked text helpers ───────────────────────────────────────────────────────
 
-                    {error.faulty_part_isolation && (
-                        <Accordion disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                <Box display="flex" gap={1.5} alignItems="center">
-                                    <WarningIcon color="warning" fontSize="small" />
-                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
-                                        Fault Isolation
-                                    </Typography>
-                                </Box>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Box
-                                    sx={{
-                                        p: 1.5,
-                                        bgcolor: alpha(theme.palette.background.default, 0.5),
-                                        borderRadius: 1,
-                                        border: `1px solid ${theme.palette.divider}`
-                                    }}
-                                >
-                                    <Typography variant="body2" color="text.primary" component="div">
-                                        {renderLinkedText(error.faulty_part_isolation, true)}
-                                    </Typography>
-                                </Box>
-                            </AccordionDetails>
-                        </Accordion>
-                    )}
+function renderLinkedText(
+  text: string | undefined,
+  onDipSwitchClick?: (sw: number, bit: number) => void,
+  preWrap = false,
+): React.ReactNode {
+  if (!text) return null;
+  const dipswRegex = /(?:DipSW|SW)\s*(\d+)-(\d+)/gi;
+  const matches = [...text.matchAll(dipswRegex)];
+  if (!matches.length) {
+    return preWrap ? <span style={{ whiteSpace: 'pre-wrap' }}>{text}</span> : text;
+  }
 
-                    {(error.estimated_abnormal_parts || (error.parts && error.parts.length > 0)) && (
-                        <Accordion defaultExpanded disableGutters elevation={0} sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: '8px !important', '&:before': { display: 'none' } }}>
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                <Box display="flex" gap={1.5} alignItems="center">
-                                    <BuildIcon color="secondary" fontSize="small" />
-                                    <Typography variant="subtitle2" fontWeight="bold" textTransform="uppercase" color="text.secondary">
-                                        Recommended Spare Parts
-                                    </Typography>
-                                </Box>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                {error.estimated_abnormal_parts && (
-                                    <Box mb={2}>
-                                        <Typography variant="subtitle2" color="text.secondary" mb={1}>
-                                            Estimated Parts
-                                        </Typography>
-                                        <Box
-                                            sx={{
-                                                p: 1.5,
-                                                bgcolor: 'background.default',
-                                                borderRadius: 1,
-                                            }}
-                                        >
-                                            <Typography variant="body2" component="div">
-                                                {renderLinkedTextWithParts(error.estimated_abnormal_parts)}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                )}
-
-                                {error.parts && error.parts.length > 0 && (
-                                    <Grid container spacing={2}>
-                                        {error.parts.map((part, idx) => (
-                                            <Grid size={{ xs: 12, md: 6 }} key={idx}>
-                                                <Card variant="outlined" sx={{ display: 'flex', flexDirection: 'row', p: 1, alignItems: 'center', gap: 2, height: '100%' }}>
-                                                    {part.image_url && (
-                                                        <Box
-                                                            component="img"
-                                                            src={part.image_url}
-                                                            alt={part.oem_code}
-                                                            sx={{ width: 64, height: 64, borderRadius: 1, objectFit: 'cover' }}
-                                                        />
-                                                    )}
-                                                    <Box flex={1} minWidth={0}>
-                                                        <Typography variant="subtitle2" color="secondary" fontFamily="monospace" fontWeight="bold">
-                                                            {part.oem_code}
-                                                        </Typography>
-                                                        <Typography variant="body2" color="text.primary" sx={{ lineHeight: 1.2, mb: 0.5 }}>
-                                                            {part.description}
-                                                        </Typography>
-                                                        <Box display="flex" gap={0.5}>
-                                                            {[...Array(5)].map((_, i) => (
-                                                                <Box
-                                                                    key={i}
-                                                                    sx={{
-                                                                        width: 16,
-                                                                        height: 4,
-                                                                        borderRadius: 1,
-                                                                        bgcolor: i < part.ranking ? 'secondary.main' : 'action.disabledBackground'
-                                                                    }}
-                                                                />
-                                                            ))}
-                                                        </Box>
-                                                    </Box>
-                                                </Card>
-                                            </Grid>
-                                        ))}
-                                    </Grid>
-                                )}
-                            </AccordionDetails>
-                        </Accordion>
-                    )}
-                </Stack>
-            </CardContent>
-
-            {/* Spare Parts Search Dialog */}
-            {model && (
-                <SparePartsSearch
-                    open={partSearchOpen}
-                    onClose={() => setPartSearchOpen(false)}
-                    initialQuery={partQuery}
-                    model={model}
-                />
-            )}
-        </Card>
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  for (const match of matches) {
+    const [full, swStr, bitStr] = match;
+    const idx = match.index!;
+    if (idx > cursor) {
+      parts.push(
+        <span key={`t-${idx}`} style={preWrap ? { whiteSpace: 'pre-wrap' } : {}}>
+          {text.slice(cursor, idx)}
+        </span>,
+      );
+    }
+    parts.push(
+      <button
+        key={`d-${idx}`}
+        type="button"
+        className="chip chip-blue"
+        style={{ verticalAlign: 'middle', cursor: 'pointer' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDipSwitchClick?.(parseInt(swStr), parseInt(bitStr));
+        }}
+      >
+        {IcoSettings}
+        {full}
+      </button>,
     );
+    cursor = idx + full.length;
+  }
+  if (cursor < text.length) {
+    parts.push(
+      <span key="t-end" style={preWrap ? { whiteSpace: 'pre-wrap' } : {}}>
+        {text.slice(cursor)}
+      </span>,
+    );
+  }
+  return <>{parts}</>;
+}
+
+type MatchMeta = {
+  index: number;
+  length: number;
+  text: string;
+  kind: 'dipswitch' | 'part';
+  swNum?: number;
+  bitNum?: number;
+};
+
+function renderLinkedTextWithParts(
+  text: string | undefined,
+  onDipSwitchClick?: (sw: number, bit: number) => void,
+  onPartClick?: (query: string) => void,
+): React.ReactNode {
+  if (!text) return null;
+
+  const patterns: { regex: RegExp; kind: MatchMeta['kind'] }[] = [
+    { regex: /(?:DipSW|SW)\s*(\d+)-(\d+)/gi, kind: 'dipswitch' },
+    {
+      regex: /((?:Fusing|Transfer|Drum|Developer|Charge|Cleaning|DC\s*power\s*supply|Printer\s*control|Paper\s*lift\s*motor|Upper\s*limit\s*sensor|Fan\s*motor|Motor|Clutch|Solenoid|Photo\s*sensor|Photointerrupter|Temperature\s*sensor|Thermostat|Switch)\s*(?:Unit|Roller|Assembly|Board|\/\d+)?\s*(?:\([A-Z0-9]{2,6}\))?)/gi,
+      kind: 'part',
+    },
+    { regex: /\b([A-Z]{2,6}\d*|[A-Z]+\d{1,3})\b/g, kind: 'part' },
+    { regex: /\b([A-Z0-9]{8,12})\b/g, kind: 'part' },
+  ];
+
+  const allMatches: MatchMeta[] = [];
+
+  for (const { regex, kind } of patterns) {
+    for (const m of text.matchAll(regex)) {
+      const idx = m.index!;
+      const full = m[0];
+      const overlaps = allMatches.some(
+        (ex) =>
+          (idx >= ex.index && idx < ex.index + ex.length) ||
+          (idx + full.length > ex.index && idx + full.length <= ex.index + ex.length),
+      );
+      if (!overlaps) {
+        if (kind === 'dipswitch') {
+          allMatches.push({
+            index: idx,
+            length: full.length,
+            text: full,
+            kind,
+            swNum: parseInt(m[1]),
+            bitNum: parseInt(m[2]),
+          });
+        } else {
+          allMatches.push({ index: idx, length: full.length, text: full, kind });
+        }
+      }
+    }
+  }
+
+  allMatches.sort((a, b) => a.index - b.index);
+
+  if (!allMatches.length) return <span style={{ whiteSpace: 'pre-wrap' }}>{text}</span>;
+
+  const elements: React.ReactNode[] = [];
+  let cursor = 0;
+  for (const m of allMatches) {
+    if (m.index > cursor) {
+      elements.push(
+        <span key={`t-${m.index}`} style={{ whiteSpace: 'pre-wrap' }}>
+          {text.slice(cursor, m.index)}
+        </span>,
+      );
+    }
+    if (m.kind === 'dipswitch') {
+      elements.push(
+        <button
+          key={`d-${m.index}`}
+          type="button"
+          className="chip chip-blue"
+          style={{ verticalAlign: 'middle', cursor: 'pointer' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDipSwitchClick?.(m.swNum!, m.bitNum!);
+          }}
+        >
+          {IcoSettings}
+          {m.text}
+        </button>,
+      );
+    } else {
+      elements.push(
+        <button
+          key={`p-${m.index}`}
+          type="button"
+          className="chip chip-green"
+          style={{ verticalAlign: 'middle', cursor: 'pointer' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPartClick?.(m.text);
+          }}
+        >
+          <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </svg>
+          {m.text}
+        </button>,
+      );
+    }
+    cursor = m.index + m.length;
+  }
+  if (cursor < text.length) {
+    elements.push(
+      <span key="t-end" style={{ whiteSpace: 'pre-wrap' }}>
+        {text.slice(cursor)}
+      </span>,
+    );
+  }
+  return <>{elements}</>;
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
+  const [partSearchOpen, setPartSearchOpen] = useState(false);
+  const [partQuery, setPartQuery] = useState('');
+
+  const handlePartClick = (query: string) => {
+    if (!model) return;
+    setPartQuery(query);
+    setPartSearchOpen(true);
+  };
+
+  // Parse solution into numbered steps
+  const renderSolution = () => {
+    if (!error.solution) return null;
+    const text = error.solution;
+    const hasNumbering = /\d+\./.test(text);
+    if (hasNumbering) {
+      const steps = text
+        .split(/(?=\b\d+\.\s)/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      return (
+        <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {steps.map((step, idx) => {
+            const m = step.match(/^(\d+\.)\s+([\s\S]*)/);
+            if (m) {
+              return (
+                <li key={idx} style={{ display: 'flex', gap: 8 }}>
+                  <span
+                    className="mono"
+                    style={{ color: 'var(--accent)', fontWeight: 700, minWidth: 22, flexShrink: 0, fontSize: '0.85rem' }}
+                  >
+                    {m[1]}
+                  </span>
+                  <span style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
+                    {renderLinkedText(m[2], onDipSwitchClick)}
+                  </span>
+                </li>
+              );
+            }
+            return (
+              <li key={idx} style={{ paddingLeft: 22, fontSize: '0.88rem', lineHeight: 1.55 }}>
+                {renderLinkedText(step, onDipSwitchClick)}
+              </li>
+            );
+          })}
+        </ol>
+      );
+    }
+    // Line-by-line
+    return (
+      <ul style={{ listStyle: 'disc', paddingLeft: 18, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {text.split('\n').map((line, idx) => {
+          const trimmed = line.trim();
+          if (!trimmed) return null;
+          return (
+            <li key={idx} style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
+              {renderLinkedText(trimmed, onDipSwitchClick)}
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
+  return (
+    <>
+      <div
+        className="animate-fade-up"
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-default)',
+          borderRadius: 14,
+          overflow: 'hidden',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-strong)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-md)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border-default)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
+        }}
+      >
+        {/* ── Card Header ─────────────────────────────────────────── */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '14px 18px',
+            borderBottom: '1px solid var(--border-subtle)',
+            background: 'linear-gradient(90deg, rgba(56,189,248,0.05) 0%, transparent 60%)',
+          }}
+        >
+          <span
+            className="mono"
+            style={{
+              fontSize: '1.5rem',
+              fontWeight: 900,
+              color: 'var(--accent)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {error.code}
+          </span>
+          {error.classification && (
+            <span
+              className="chip chip-blue"
+              style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: 6 }}
+            >
+              {error.classification}
+            </span>
+          )}
+        </div>
+
+        {/* ── Accordions ──────────────────────────────────────────── */}
+        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+          {error.cause && (
+            <Accordion label="Cause" icon={IcoWarning} iconColor="var(--amber)" defaultOpen>
+              <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
+                {renderLinkedText(error.cause, onDipSwitchClick)}
+              </p>
+            </Accordion>
+          )}
+
+          {error.measures && (
+            <Accordion label="Measures" icon={IcoInfo} iconColor="var(--accent)">
+              <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
+                {renderLinkedText(error.measures, onDipSwitchClick, true)}
+              </p>
+            </Accordion>
+          )}
+
+          {error.solution && (
+            <Accordion label="Solution" icon={IcoCheck} iconColor="var(--green)" defaultOpen>
+              {renderSolution()}
+            </Accordion>
+          )}
+
+          {error.correction && (
+            <Accordion
+              label="Correction"
+              icon={error.correction.toLowerCase().includes('warning') ? IcoWarning : IcoCheck}
+              iconColor={error.correction.toLowerCase().includes('warning') ? 'var(--red)' : 'var(--text-secondary)'}
+            >
+              {error.correction.toLowerCase().includes('warning') ? (
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    background: 'rgba(248,113,113,0.07)',
+                    border: '1px solid rgba(248,113,113,0.25)',
+                    borderRadius: 8,
+                    fontSize: '0.88rem',
+                    color: 'var(--red)',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  ⚠️ {renderLinkedText(error.correction, onDipSwitchClick, true)}
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
+                  {renderLinkedText(error.correction, onDipSwitchClick, true)}
+                </p>
+              )}
+            </Accordion>
+          )}
+
+          {error.faulty_part_isolation && (
+            <Accordion label="Fault Isolation" icon={IcoWarning} iconColor="var(--amber)">
+              <div
+                style={{
+                  padding: '10px 12px',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 8,
+                  fontSize: '0.83rem',
+                  lineHeight: 1.6,
+                }}
+              >
+                {renderLinkedText(error.faulty_part_isolation, onDipSwitchClick, true)}
+              </div>
+            </Accordion>
+          )}
+
+          {(error.estimated_abnormal_parts || (error.parts && error.parts.length > 0)) && (
+            <Accordion label="Recommended Spare Parts" icon={IcoBuild} iconColor="var(--text-secondary)" defaultOpen>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                {error.estimated_abnormal_parts && (
+                  <div>
+                    <div
+                      style={{
+                        fontSize: '0.67rem',
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        marginBottom: 6,
+                      }}
+                    >
+                      Estimated parts
+                    </div>
+                    <div
+                      style={{
+                        padding: '10px 12px',
+                        background: 'var(--bg-elevated)',
+                        borderRadius: 8,
+                        fontSize: '0.85rem',
+                        lineHeight: 1.7,
+                      }}
+                    >
+                      {renderLinkedTextWithParts(error.estimated_abnormal_parts, onDipSwitchClick, handlePartClick)}
+                    </div>
+                  </div>
+                )}
+
+                {error.parts && error.parts.length > 0 && (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                      gap: 8,
+                    }}
+                  >
+                    {error.parts.map((part, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          gap: 10,
+                          padding: '10px 12px',
+                          background: 'var(--bg-elevated)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 10,
+                          alignItems: 'center',
+                        }}
+                      >
+                        {part.image_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={part.image_url}
+                            alt={part.oem_code}
+                            style={{ width: 52, height: 52, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
+                          />
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                          <div
+                            className="mono"
+                            style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.8rem', marginBottom: 2 }}
+                          >
+                            {part.oem_code}
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 6 }}>
+                            {part.description}
+                          </div>
+                          {/* Ranking bars */}
+                          <div style={{ display: 'flex', gap: 3 }}>
+                            {[...Array(5)].map((_, i) => (
+                              <div
+                                key={i}
+                                style={{
+                                  width: 14,
+                                  height: 3,
+                                  borderRadius: 2,
+                                  background: i < part.ranking ? 'var(--accent)' : 'var(--bg-hover)',
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Accordion>
+          )}
+
+        </div>
+      </div>
+
+      {/* Spare Parts modal */}
+      {model && (
+        <SparePartsSearch
+          open={partSearchOpen}
+          onClose={() => setPartSearchOpen(false)}
+          initialQuery={partQuery}
+          model={model}
+        />
+      )}
+    </>
+  );
 }

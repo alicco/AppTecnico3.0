@@ -1,411 +1,526 @@
 'use client';
 
-import { useState, useEffect, useMemo, useTransition } from 'react';
+import { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import { getDipSwitches, type DipSwitch } from '@/app/actions/search';
-import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    IconButton,
-    TextField,
-    InputAdornment,
-    Typography,
-    Box,
-    Card,
-    CardContent,
-    Chip,
-    Grid,
-    Stack,
-    CircularProgress,
-    useMediaQuery,
-    useTheme,
-} from '@mui/material';
-import {
-    Search as SearchIcon,
-    Close as CloseIcon,
-    FilterList as FilterIcon,
-    ToggleOn as ToggleIcon,
-    Add as AddIcon,
-    Remove as RemoveIcon,
-} from '@mui/icons-material';
-
 
 interface DipSwitchViewerProps {
-    model: string;
-    target?: { switch: number; bit?: number } | null;
-    onClose: () => void;
+  model: string;
+  target?: { switch: number; bit?: number } | null;
+  onClose: () => void;
 }
 
 export function DipSwitchViewer({ model, target, onClose }: DipSwitchViewerProps) {
-    const [switches, setSwitches] = useState<DipSwitch[]>([]);
-    const [isPending, startTransition] = useTransition();
-    const [filterSw, setFilterSw] = useState<string>('');
-    const [searchQuery, setSearchQuery] = useState<string>('');
+  const [switches, setSwitches] = useState<DipSwitch[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const [filterSw, setFilterSw] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-    const theme = useTheme();
-    const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
+  // Model aliasing
+  const fetchModel = useMemo(() => {
+    if (model === 'C6085' || model === 'C6080') return 'C6100';
+    if (model === 'C4070' || model === 'C4065') return 'C4080';
+    return model;
+  }, [model]);
 
-    // Fetch logic
-    useEffect(() => {
-        if (!model) return;
+  // Fetch data
+  useEffect(() => {
+    if (!fetchModel) return;
+    startTransition(() => {
+      getDipSwitches(fetchModel)
+        .then(setSwitches)
+        .catch((err) => console.error('Failed to fetch dipswitches', err));
+    });
+  }, [fetchModel]);
 
-        // Model Aliasing (Map variants to the "Master" PDF model)
-        let fetchModel = model;
-        if (model === 'C6085' || model === 'C6080') fetchModel = 'C6100';
-        if (model === 'C4070' || model === 'C4065') fetchModel = 'C4080'; // Logic alias as requested
+  // Sync filter to target
+  useEffect(() => {
+    if (target?.switch) {
+      setFilterSw(target.switch.toString());
+      setSearchQuery('');
+    }
+  }, [target]);
 
-        // eslint-disable-next-line
-        // eslint-disable-next-line
-        startTransition(() => {
-            getDipSwitches(fetchModel)
-                .then((data) => {
-                    setSwitches(data);
-                })
-                .catch((err) => {
-                    console.error('Failed to fetch dipswitches', err);
-                });
-        });
-    }, [model]);
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
 
-    // Sync target to filter
-    useEffect(() => {
-        if (target?.switch) {
-            const newFilter = target.switch.toString();
-            if (filterSw !== newFilter) {
-                // eslint-disable-next-line
-                setFilterSw(newFilter);
-            }
-            if (searchQuery !== '') {
-                setSearchQuery('');
-            }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [target]);
+  const filteredSwitches = useMemo(() => {
+    return switches.filter((s) => {
+      if (filterSw && s.switch_number.toString() !== filterSw) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return (
+          s.function_name?.toLowerCase().includes(q) ||
+          s.setting_0?.toLowerCase().includes(q) ||
+          s.setting_1?.toLowerCase().includes(q)
+        );
+      }
+      // Filter out blank/placeholder entries when not searching
+      if (s.function_name === '-' || s.function_name === 'Function' || !s.function_name) return false;
+      return true;
+    });
+  }, [switches, filterSw, searchQuery]);
 
-    const filteredSwitches = useMemo(() => {
-        return switches.filter((s) => {
-            // 1. Switch Number Filter
-            if (filterSw && s.switch_number.toString() !== filterSw) {
-                return false;
-            }
+  const groupedSwitches = useMemo(() => {
+    const groups: Record<number, DipSwitch[]> = {};
+    filteredSwitches.forEach((sw) => {
+      if (!groups[sw.switch_number]) groups[sw.switch_number] = [];
+      groups[sw.switch_number].push(sw);
+    });
+    return groups;
+  }, [filteredSwitches]);
 
-            // 2. Text Search Filter (Description, Settings)
-            if (searchQuery) {
-                const query = searchQuery.toLowerCase();
-                const matchesFunction = s.function_name?.toLowerCase().includes(query);
-                const matchesSet0 = s.setting_0?.toLowerCase().includes(query);
-                const matchesSet1 = s.setting_1?.toLowerCase().includes(query);
-                if (!matchesFunction && !matchesSet0 && !matchesSet1) {
-                    return false;
-                }
-            } else {
-                // General browsing: Filter out "empty" or placeholder switches
-                if (s.function_name === '-' || s.function_name === 'Function' || !s.function_name) {
-                    return false;
-                }
-            }
+  if (!model) return null;
 
-            return true;
-        });
-    }, [switches, filterSw, searchQuery]);
+  const numSw = parseInt(filterSw) || 0;
 
-    // Group by Switch Number
-    const groupedSwitches = useMemo(() => {
-        const groups: Record<number, DipSwitch[]> = {};
-        filteredSwitches.forEach((sw) => {
-            if (!groups[sw.switch_number]) groups[sw.switch_number] = [];
-            groups[sw.switch_number].push(sw);
-        });
-        return groups;
-    }, [filteredSwitches]);
-
-    const handleClose = () => {
-        onClose();
-    };
-
-    if (!model) return null;
-
-    return (
-        <Dialog
-            open={!!model}
-            onClose={handleClose}
-            fullScreen={fullScreen}
-            maxWidth="lg"
-            fullWidth
-            PaperProps={{
-                sx: {
-                    bgcolor: 'background.paper',
-                    backgroundImage: 'none',
-                    borderRadius: fullScreen ? 0 : 3,
-                    height: fullScreen ? '100%' : '90vh', // Enforce height to trigger internal scroll
-                    display: 'flex',
-                    flexDirection: 'column'
-                },
-            }}
+  return (
+    <div
+      className="modal-backdrop"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="modal-panel animate-scale-in"
+        style={{ width: '100%', maxWidth: 860, margin: '0 16px', maxHeight: '90vh' }}
+      >
+        {/* ── Header ─────────────────────────────────────────── */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--border-subtle)',
+            flexShrink: 0,
+          }}
         >
-            <DialogTitle
-                sx={{
-                    py: 2,
-                    px: 3,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    bgcolor: 'background.paper',
-                    borderBottom: `1px solid ${theme.palette.divider}`,
-                    flexShrink: 0 // Prevent shrinking
-                }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                background: 'var(--accent-dim)',
+                border: '1px solid rgba(56,189,248,0.2)',
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-                <Box display="flex" flexDirection="column">
-                    <Box display="flex" alignItems="center" gap={1.5} mb={0.5}>
-                        <ToggleIcon color="primary" sx={{ fontSize: 32 }} />
-                        <Typography variant="h5" fontWeight="bold" color="text.primary">
-                            Dipsw Reference
-                        </Typography>
-                    </Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                        Configuration settings for <Box component="span" color="primary.main" fontWeight="600">{model}</Box>
-                    </Typography>
-                </Box>
-                <IconButton onClick={handleClose} aria-label="close" size="large">
-                    <CloseIcon />
-                </IconButton>
-            </DialogTitle>
-
-            <Box sx={{ px: 3, py: 2, bgcolor: 'background.paper', borderBottom: `1px solid ${theme.palette.divider}`, flexShrink: 0 }}>
-                <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 9 }}>
-                        <TextField
-                            fullWidth
-                            variant="outlined"
-                            placeholder="Search settings, functions..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <SearchIcon color="action" />
-                                    </InputAdornment>
-                                ),
-                                sx: { borderRadius: 3, bgcolor: 'background.default' }
-                            }}
-                        />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <Box display="flex" alignItems="center" gap={1}>
-                            <IconButton
-                                onClick={() => {
-                                    const val = parseInt(filterSw) || 0;
-                                    if (val > 1) setFilterSw((val - 1).toString());
-                                    else setFilterSw('');
-                                }}
-                                color="primary"
-                                sx={{ bgcolor: 'action.hover' }}
-                            >
-                                <RemoveIcon />
-                            </IconButton>
-                            <TextField
-                                fullWidth
-                                variant="outlined"
-                                placeholder="DipSW No."
-                                type="number"
-                                value={filterSw}
-                                onChange={(e) => {
-                                    const val = parseInt(e.target.value);
-                                    if (val < 0) return; // Prevent negative
-                                    setFilterSw(e.target.value);
-                                }}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <FilterIcon color="action" />
-                                        </InputAdornment>
-                                    ),
-                                    sx: { borderRadius: 3, bgcolor: 'background.default', textAlign: 'center' }
-                                }}
-                            />
-                            <IconButton
-                                onClick={() => {
-                                    const val = parseInt(filterSw) || 0;
-                                    setFilterSw((val + 1).toString());
-                                }}
-                                color="primary"
-                                sx={{ bgcolor: 'action.hover' }}
-                            >
-                                <AddIcon />
-                            </IconButton>
-                        </Box>
-                    </Grid>
-                </Grid>
-            </Box>
-
-            <DialogContent dividers sx={{ bgcolor: 'background.default', p: 0 }}>
-                {isPending ? (
-                    <Box display="flex" justifyContent="center" alignItems="center" height="400px">
-                        <CircularProgress size={60} thickness={4} />
-                    </Box>
-                ) : Object.keys(groupedSwitches).length === 0 ? (
-                    <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" height="300px" gap={2}>
-                        <SearchIcon sx={{ fontSize: 60, color: 'text.disabled', opacity: 0.5 }} />
-                        <Typography variant="h6" color="text.secondary">No matching switches found.</Typography>
-                    </Box>
-                ) : (
-                    <Box sx={{ p: 3 }}>
-                        <Stack spacing={4}>
-                            {Object.keys(groupedSwitches)
-                                .sort((a, b) => Number(a) - Number(b))
-                                .map((swNum) => (
-                                    <Box key={swNum}>
-                                        <Typography
-                                            variant="h6"
-                                            fontWeight="bold"
-                                            color="primary"
-                                            sx={{
-                                                mb: 2,
-                                                ml: 1,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 1,
-                                                textTransform: 'uppercase',
-                                                letterSpacing: 1
-                                            }}
-                                        >
-                                            DipSW {swNum}
-                                        </Typography>
-
-                                        <Stack spacing={2}>
-                                            {groupedSwitches[Number(swNum)].map((sw) => {
-                                                const isTarget = target && target.switch === sw.switch_number && target.bit === sw.bit_number;
-
-                                                return (
-                                                    <Card
-                                                        key={sw.id}
-                                                        elevation={isTarget ? 8 : 1}
-                                                        sx={{
-                                                            border: isTarget ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
-                                                            bgcolor: isTarget ? 'rgba(41, 182, 246, 0.08)' : 'background.paper',
-                                                            transition: 'all 0.2s ease-in-out',
-                                                            '&:hover': {
-                                                                transform: 'translateY(-2px)',
-                                                                boxShadow: theme.shadows[4],
-                                                            }
-                                                        }}
-                                                    >
-                                                        <CardContent sx={{ p: '24px !important' }}>
-                                                            <Grid container alignItems="center" spacing={3}>
-                                                                {/* Bit Identity */}
-                                                                <Grid size={{ xs: 2, sm: 1 }} display="flex" justifyContent="center">
-                                                                    <Box display="flex" flexDirection="column" alignItems="center">
-                                                                        <Typography variant="caption" color="text.secondary" fontWeight="bold">BIT</Typography>
-                                                                        <Chip
-                                                                            label={sw.bit_number}
-                                                                            color={isTarget ? "primary" : "default"}
-                                                                            sx={{
-                                                                                height: 32,
-                                                                                width: 32,
-                                                                                borderRadius: '50%',
-                                                                                fontWeight: 'bold',
-                                                                                fontSize: '1rem',
-                                                                                '& .MuiChip-label': { px: 0 }
-                                                                            }}
-                                                                        />
-                                                                    </Box>
-                                                                </Grid>
-
-                                                                {/* Function Name */}
-                                                                <Grid size={{ xs: 10, sm: 5 }}>
-                                                                    <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
-                                                                        FUNCTION
-                                                                    </Typography>
-                                                                    <Typography variant="body1" fontWeight="500" lineHeight={1.3}>
-                                                                        {sw.function_name}
-                                                                    </Typography>
-                                                                </Grid>
-
-                                                                {/* Settings */}
-                                                                <Grid size={{ xs: 12, sm: 6 }}>
-                                                                    <Grid container spacing={2}>
-                                                                        <Grid size={{ xs: 6 }}>
-                                                                            <Box
-                                                                                sx={{
-                                                                                    p: 1.5,
-                                                                                    bgcolor: sw.default_val === '0' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                                                                                    borderRadius: 2,
-                                                                                    border: sw.default_val === '0' ? '1px solid #4CAF50' : '1px solid rgba(255, 255, 255, 0.05)',
-                                                                                    position: 'relative'
-                                                                                }}
-                                                                            >
-                                                                                {sw.default_val === '0' && (
-                                                                                    <Chip
-                                                                                        label="DEFAULT"
-                                                                                        size="small"
-                                                                                        color="success"
-                                                                                        sx={{
-                                                                                            position: 'absolute',
-                                                                                            top: -10,
-                                                                                            right: 10,
-                                                                                            height: 20,
-                                                                                            fontSize: '0.65rem',
-                                                                                            fontWeight: 'bold'
-                                                                                        }}
-                                                                                    />
-                                                                                )}
-                                                                                <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                                                                                    <Box width={8} height={8} borderRadius="50%" bgcolor="grey.600" />
-                                                                                    <Typography variant="caption" color="text.secondary">SETTING 0</Typography>
-                                                                                </Box>
-                                                                                <Typography variant="body2" fontFamily="monospace" color="text.primary">
-                                                                                    {sw.setting_0}
-                                                                                </Typography>
-                                                                            </Box>
-                                                                        </Grid>
-                                                                        <Grid size={{ xs: 6 }}>
-                                                                            <Box
-                                                                                sx={{
-                                                                                    p: 1.5,
-                                                                                    bgcolor: sw.default_val === '1' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                                                                                    borderRadius: 2,
-                                                                                    border: sw.default_val === '1' ? '1px solid #4CAF50' : '1px solid rgba(255, 255, 255, 0.05)',
-                                                                                    position: 'relative'
-                                                                                }}
-                                                                            >
-                                                                                {sw.default_val === '1' && (
-                                                                                    <Chip
-                                                                                        label="DEFAULT"
-                                                                                        size="small"
-                                                                                        color="success"
-                                                                                        sx={{
-                                                                                            position: 'absolute',
-                                                                                            top: -10,
-                                                                                            right: 10,
-                                                                                            height: 20,
-                                                                                            fontSize: '0.65rem',
-                                                                                            fontWeight: 'bold'
-                                                                                        }}
-                                                                                    />
-                                                                                )}
-                                                                                <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                                                                                    <Box width={8} height={8} borderRadius="50%" bgcolor="primary.main" />
-                                                                                    <Typography variant="caption" color="text.secondary">SETTING 1</Typography>
-                                                                                </Box>
-                                                                                <Typography variant="body2" fontFamily="monospace" color="text.primary">
-                                                                                    {sw.setting_1}
-                                                                                </Typography>
-                                                                            </Box>
-                                                                        </Grid>
-                                                                    </Grid>
-                                                                </Grid>
-                                                            </Grid>
-                                                        </CardContent>
-                                                    </Card>
-                                                );
-                                            })}
-                                        </Stack>
-                                    </Box>
-                                ))}
-                        </Stack>
-                    </Box>
+              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth={2}>
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+                <circle cx="7" cy="10" r="1.5" fill="var(--accent)" stroke="none" />
+                <circle cx="12" cy="10" r="1.5" fill="var(--text-secondary)" stroke="none" />
+                <circle cx="17" cy="10" r="1.5" fill="var(--text-secondary)" stroke="none" />
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1rem' }}>DipSW Reference</div>
+              <div style={{ fontSize: '0.73rem', color: 'var(--text-secondary)' }}>
+                Configuration matrix for{' '}
+                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{model}</span>
+                {fetchModel !== model && (
+                  <span style={{ opacity: 0.6 }}> (using {fetchModel} data)</span>
                 )}
-            </DialogContent>
-        </Dialog>
-    );
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: '1px solid var(--border-default)',
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              borderRadius: 8,
+              padding: 6,
+              display: 'flex',
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+          >
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* ── Filters ─────────────────────────────────────────── */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto',
+            gap: 12,
+            padding: '12px 20px',
+            borderBottom: '1px solid var(--border-subtle)',
+            flexShrink: 0,
+          }}
+        >
+          {/* Text search */}
+          <div style={{ position: 'relative' }}>
+            <svg
+              style={{
+                position: 'absolute',
+                left: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 16,
+                height: 16,
+                color: 'var(--text-secondary)',
+                pointerEvents: 'none',
+              }}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="input-base"
+              style={{ paddingLeft: 38 }}
+              placeholder="Search functions, settings…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Switch number stepper */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (numSw > 1) setFilterSw((numSw - 1).toString());
+                else setFilterSw('');
+              }}
+              style={{
+                width: 34,
+                height: 34,
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path d="M5 12h14" />
+              </svg>
+            </button>
+
+            <div style={{ position: 'relative' }}>
+              <svg
+                style={{
+                  position: 'absolute',
+                  left: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 14,
+                  height: 14,
+                  color: 'var(--text-secondary)',
+                  pointerEvents: 'none',
+                }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+              </svg>
+              <input
+                type="number"
+                className="input-base"
+                style={{ paddingLeft: 28, width: 80, textAlign: 'center' }}
+                placeholder="SW #"
+                value={filterSw}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value);
+                  if (e.target.value === '' || v > 0) setFilterSw(e.target.value);
+                }}
+                min={1}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setFilterSw((numSw + 1).toString())}
+              style={{
+                width: 34,
+                height: 34,
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+
+            {filterSw && (
+              <button
+                type="button"
+                onClick={() => setFilterSw('')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.7rem',
+                  padding: '4px 6px',
+                }}
+              >
+                All
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Content ─────────────────────────────────────────── */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+          {isPending ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+              <div className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
+            </div>
+          ) : Object.keys(groupedSwitches).length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 240,
+                gap: 12,
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <svg
+                style={{ width: 48, height: 48, opacity: 0.35 }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <div style={{ fontSize: '0.95rem' }}>No matching switches found</div>
+              <button
+                type="button"
+                onClick={() => { setFilterSw(''); setSearchQuery(''); }}
+                style={{
+                  fontSize: '0.78rem',
+                  color: 'var(--accent)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+              {Object.keys(groupedSwitches)
+                .sort((a, b) => Number(a) - Number(b))
+                .map((swNum) => (
+                  <div key={swNum}>
+                    {/* Group header */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <span
+                        className="mono"
+                        style={{
+                          color: 'var(--accent)',
+                          fontWeight: 800,
+                          fontSize: '0.8rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.12em',
+                        }}
+                      >
+                        DipSW {swNum}
+                      </span>
+                      <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {groupedSwitches[Number(swNum)].length} bit{groupedSwitches[Number(swNum)].length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    {/* Bits */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {groupedSwitches[Number(swNum)].map((sw) => {
+                        const isTarget =
+                          target &&
+                          target.switch === sw.switch_number &&
+                          target.bit === sw.bit_number;
+
+                        return (
+                          <div
+                            key={sw.id}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '44px 1fr 1fr 1fr',
+                              alignItems: 'center',
+                              gap: 10,
+                              padding: '10px 14px',
+                              borderRadius: 10,
+                              border: isTarget
+                                ? '1px solid rgba(56,189,248,0.5)'
+                                : '1px solid var(--border-subtle)',
+                              background: isTarget
+                                ? 'rgba(56,189,248,0.06)'
+                                : 'var(--bg-elevated)',
+                              transition: 'all 0.15s',
+                              boxShadow: isTarget ? '0 0 16px rgba(56,189,248,0.12)' : 'none',
+                            }}
+                          >
+                            {/* Bit badge */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 2,
+                              }}
+                            >
+                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>BIT</span>
+                              <div
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: '50%',
+                                  background: isTarget ? 'var(--accent)' : 'var(--bg-card)',
+                                  border: isTarget
+                                    ? '2px solid var(--accent)'
+                                    : '2px solid var(--border-default)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 800,
+                                  fontSize: '0.8rem',
+                                  color: isTarget ? '#000' : 'var(--text-secondary)',
+                                  fontFamily: 'var(--font-mono)',
+                                }}
+                              >
+                                {sw.bit_number}
+                              </div>
+                            </div>
+
+                            {/* Function */}
+                            <div>
+                              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>
+                                FUNCTION
+                              </div>
+                              <div style={{ fontSize: '0.83rem', fontWeight: 500, lineHeight: 1.35 }}>
+                                {sw.function_name}
+                              </div>
+                            </div>
+
+                            {/* Setting 0 */}
+                            <div
+                              style={{
+                                padding: '8px 10px',
+                                borderRadius: 8,
+                                background: sw.default_val === '0' ? 'rgba(74,222,128,0.08)' : 'var(--bg-card)',
+                                border: sw.default_val === '0'
+                                  ? '1px solid rgba(74,222,128,0.3)'
+                                  : '1px solid var(--border-subtle)',
+                                position: 'relative',
+                              }}
+                            >
+                              {sw.default_val === '0' && (
+                                <span
+                                  className="chip chip-green"
+                                  style={{
+                                    position: 'absolute',
+                                    top: -8,
+                                    right: 6,
+                                    fontSize: '0.58rem',
+                                    padding: '1px 5px',
+                                  }}
+                                >
+                                  DEFAULT
+                                </span>
+                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                                <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-muted)' }} />
+                                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>SET 0</span>
+                              </div>
+                              <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                                {sw.setting_0 || '—'}
+                              </div>
+                            </div>
+
+                            {/* Setting 1 */}
+                            <div
+                              style={{
+                                padding: '8px 10px',
+                                borderRadius: 8,
+                                background: sw.default_val === '1' ? 'rgba(74,222,128,0.08)' : 'var(--bg-card)',
+                                border: sw.default_val === '1'
+                                  ? '1px solid rgba(74,222,128,0.3)'
+                                  : '1px solid var(--border-subtle)',
+                                position: 'relative',
+                              }}
+                            >
+                              {sw.default_val === '1' && (
+                                <span
+                                  className="chip chip-green"
+                                  style={{
+                                    position: 'absolute',
+                                    top: -8,
+                                    right: 6,
+                                    fontSize: '0.58rem',
+                                    padding: '1px 5px',
+                                  }}
+                                >
+                                  DEFAULT
+                                </span>
+                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                                <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)' }} />
+                                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>SET 1</span>
+                              </div>
+                              <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                                {sw.setting_1 || '—'}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

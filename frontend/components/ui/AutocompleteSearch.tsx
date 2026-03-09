@@ -1,168 +1,254 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Autocomplete, TextField, CircularProgress, Typography, Box } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { searchErrors, type ErrorCode } from '@/app/actions/search';
-import { debounce } from '@mui/material/utils';
 
 interface AutocompleteSearchProps {
-    model: string;
-    onSelect: (code: string) => void;
-    placeholder?: string;
-    onQueryChange?: (query: string) => void;
-    initialValue?: string;
+  model: string;
+  onSelect: (code: string) => void;
+  placeholder?: string;
+  onQueryChange?: (query: string) => void;
+  initialValue?: string;
 }
 
 export function AutocompleteSearch({
-    model,
-    onSelect,
-    onQueryChange,
-    placeholder = "Search Error Code...",
-    initialValue = ''
+  model,
+  onSelect,
+  onQueryChange,
+  placeholder = 'Search Error Code…',
+  initialValue = '',
 }: AutocompleteSearchProps) {
-    const [open, setOpen] = useState(false);
-    const [options, setOptions] = useState<readonly ErrorCode[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [inputValue, setInputValue] = useState(initialValue);
+  const [inputValue, setInputValue] = useState(initialValue);
+  const [options, setOptions] = useState<ErrorCode[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(-1);
 
-    // Create a stable debounce function
-    const fetchStats = useMemo(
-        () =>
-            debounce(
-                async (
-                    input: string,
-                    currentModel: string,
-                    callback: (results: ErrorCode[]) => void
-                ) => {
-                    if (!currentModel || input.length < 1) {
-                        callback([]);
-                        return;
-                    }
-                    try {
-                        const results = await searchErrors(currentModel, input);
-                        if (Array.isArray(results)) {
-                            callback(results);
-                        } else {
-                            callback([]);
-                        }
-                    } catch (error) {
-                        console.error('Fetch error:', error);
-                        callback([]);
-                    }
-                },
-                300
-            ),
-        [],
-    );
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
+  const fetchOptions = useCallback((query: string) => {
+    if (!model || query.length < 1) {
+      setOptions([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    searchErrors(model, query)
+      .then((res) => {
+        if (Array.isArray(res)) setOptions(res);
+        else setOptions([]);
+      })
+      .catch(() => setOptions([]))
+      .finally(() => setLoading(false));
+  }, [model]);
 
-    return (
-        <Autocomplete
-            id="error-code-search"
-            freeSolo
-            sx={{ width: '100%' }}
-            open={open}
-            onOpen={() => setOpen(true)}
-            onClose={() => {
-                setOpen(false);
-                setOptions([]);
-            }}
-            isOptionEqualToValue={(option, value) => {
-                // value can be string (freeSolo) or ErrorCode object
-                if (typeof value === 'string') return option.code === value;
-                return option.code === value.code;
-            }}
-            getOptionLabel={(option) => {
-                if (typeof option === 'string') return option;
-                return option.code;
-            }}
-            options={options}
-            loading={loading}
-            disabled={!model}
-            inputValue={inputValue}
-            onInputChange={(event, newInputValue, reason) => {
-                setInputValue(newInputValue);
-                onQueryChange?.(newInputValue);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputValue(val);
+    setHighlighted(-1);
+    onQueryChange?.(val);
 
-                if (reason === 'reset') {
-                    setOptions([]);
-                    return;
-                }
+    if (!val.trim()) {
+      setOptions([]);
+      setOpen(false);
+      setLoading(false);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      return;
+    }
 
-                if (newInputValue === '') {
-                    setOptions([]);
-                    setLoading(false);
-                    return;
-                }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchOptions(val), 280);
+    setOpen(true);
+  };
 
-                setLoading(true);
-                fetchStats(newInputValue, model, (results) => {
-                    setOptions(results);
-                    setLoading(false);
-                });
-            }}
-            onChange={(event, newValue) => {
-                // newValue can be string (freeSolo enter) or ErrorCode object (selection)
-                if (typeof newValue === 'string') {
-                    onSelect(newValue);
-                } else if (newValue && typeof newValue === 'object') {
-                    onSelect(newValue.code);
-                } else {
-                    onSelect(''); // Clear
-                }
-            }}
-            filterOptions={(x) => x} // Disable client-side filtering, we fetch from server
-            renderOption={(props, option) => {
-                // Destructure key from props to avoid React warning passed to DOM
-                const { key, ...otherProps } = props;
-                return (
-                    <li key={key} {...otherProps}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                            <Typography variant="body1" color="primary.main" fontWeight="bold">
-                                {option.code}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: '60%', ml: 2 }}>
-                                {option.cause}
-                            </Typography>
-                        </Box>
-                    </li>
-                );
-            }}
-            renderInput={(params) => (
-                <TextField
-                    {...params}
-                    placeholder={placeholder}
-                    variant="outlined"
-                    slotProps={{
-                        input: {
-                            ...params.InputProps,
-                            style: { fontSize: '1.4rem', padding: '12px', width: '100%' },
-                            startAdornment: (
-                                <>
-                                    <SearchIcon color="action" sx={{ mr: 1 }} />
-                                    {params.InputProps.startAdornment}
-                                </>
-                            ),
-                            endAdornment: (
-                                <>
-                                    {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                                    {params.InputProps.endAdornment}
-                                </>
-                            ),
-                            sx: {
-                                borderRadius: 3, // Apply rounded corners to input base
-                                bgcolor: 'background.paper', // Match existing theme
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: 'primary.main',
-                                    borderWidth: 2
-                                }
-                            }
-                        }
-                    }}
-                />
-            )}
+  const handleSelect = (code: string) => {
+    setInputValue(code);
+    setOpen(false);
+    setOptions([]);
+    onQueryChange?.(code);
+    onSelect(code);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlighted((h) => Math.min(h + 1, options.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlighted((h) => Math.max(h - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlighted >= 0 && options[highlighted]) {
+        handleSelect(options[highlighted].code);
+      } else {
+        // free‑solo submit
+        onSelect(inputValue);
+        setOpen(false);
+      }
+    } else if (e.key === 'Escape') {
+      setOpen(false);
+    }
+  };
+
+  const handleClear = () => {
+    setInputValue('');
+    setOptions([]);
+    setOpen(false);
+    onQueryChange?.('');
+    onSelect('');
+    inputRef.current?.focus();
+  };
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {/* Search icon */}
+        <svg
+          style={{
+            position: 'absolute',
+            left: 14,
+            width: 18,
+            height: 18,
+            color: 'var(--text-secondary)',
+            pointerEvents: 'none',
+          }}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+
+        <input
+          ref={inputRef}
+          type="text"
+          className="input-base"
+          style={{ paddingLeft: 44, paddingRight: 44, fontSize: '1.05rem' }}
+          placeholder={placeholder}
+          value={inputValue}
+          disabled={!model}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => {
+            if (options.length > 0) setOpen(true);
+          }}
+          autoComplete="off"
+          spellCheck={false}
         />
-    );
+
+        {/* Right side: spinner or clear */}
+        <div style={{ position: 'absolute', right: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          {loading && (
+            <div
+              className="spinner"
+              style={{ width: 16, height: 16, flexShrink: 0 }}
+            />
+          )}
+          {inputValue && !loading && (
+            <button
+              type="button"
+              onClick={handleClear}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 2,
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Dropdown */}
+      {open && options.length > 0 && (
+        <div
+          className="animate-fade-in"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            right: 0,
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-lg)',
+            zIndex: 100,
+            maxHeight: 320,
+            overflowY: 'auto',
+          }}
+        >
+          {options.map((opt, idx) => (
+            <button
+              key={opt.id ?? opt.code}
+              type="button"
+              onMouseDown={() => handleSelect(opt.code)}
+              onMouseEnter={() => setHighlighted(idx)}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                padding: '10px 14px',
+                background: idx === highlighted ? 'var(--bg-hover)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                gap: 12,
+                transition: 'background 0.1s',
+              }}
+            >
+              <span
+                className="mono"
+                style={{
+                  color: 'var(--accent)',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  flexShrink: 0,
+                }}
+              >
+                {opt.code}
+              </span>
+              {opt.cause && (
+                <span
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.78rem',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '60%',
+                  }}
+                >
+                  {opt.cause}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

@@ -150,3 +150,220 @@ export async function searchSpareParts(modelName: string, query: string, fuzzy: 
         return [];
     }
 }
+
+// --- AI-powered Smart Search via Ollama (Qwen 3.5) ---
+
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3.5:4b';
+
+const SMART_SEARCH_SYSTEM_PROMPT = `Extract printer model and English part keywords from the query. ALWAYS translate Italian to English. Use: corona=charging unit, tamburo=drum, fusore=fuser, cinghia=belt, rullo=roller, sviluppatore=developer, pulizia=cleaning, lama=blade, sensore=sensor, ventola=fan, scheda=board, alimentatore=feeder, cassetto=tray, motore=motor, ingranaggio=gear, molla=spring, guida=guide, cavo=cable, connettore=connector, pannello=panel, sportello=cover, vetro=glass, cuscinetto=bearing, colore=color. Output JSON only.`;
+
+// Fallback dictionary: if AI returns Italian keywords, translate them
+const IT_TO_EN: Record<string, string[]> = {
+    'corona': ['charging', 'corona'],
+    'tamburo': ['drum', 'OPC'],
+    'fusore': ['fuser', 'fusing'],
+    'cinghia': ['belt', 'transfer belt'],
+    'rullo': ['roller'],
+    'sviluppatore': ['developer', 'developing'],
+    'pulizia': ['cleaning'],
+    'lama': ['blade'],
+    'sensore': ['sensor'],
+    'ventola': ['fan'],
+    'scheda': ['board', 'PCB'],
+    'alimentatore': ['feeder'],
+    'cassetto': ['tray'],
+    'motore': ['motor'],
+    'ingranaggio': ['gear'],
+    'molla': ['spring'],
+    'guida': ['guide'],
+    'cavo': ['cable'],
+    'connettore': ['connector'],
+    'pannello': ['panel'],
+    'sportello': ['cover', 'door'],
+    'vetro': ['glass'],
+    'cuscinetto': ['bearing'],
+    'colore': ['color'],
+    'nero': ['black', 'K'],
+    'trasferimento': ['transfer'],
+    'pressione': ['pressure'],
+    'separazione': ['separation'],
+    'uscita': ['exit'],
+    'ingresso': ['entrance', 'feed'],
+    'carta': ['paper'],
+    'toner': ['toner'],
+};
+
+function translateKeywords(keywords: string[]): string[] {
+    const translated: string[] = [];
+    for (const kw of keywords) {
+        const lower = kw.toLowerCase();
+        if (IT_TO_EN[lower]) {
+            translated.push(...IT_TO_EN[lower]);
+        } else {
+            // Check if any Italian word is a substring of the keyword
+            let found = false;
+            for (const [it, en] of Object.entries(IT_TO_EN)) {
+                if (lower.includes(it)) {
+                    translated.push(...en);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                translated.push(kw);
+            }
+        }
+    }
+    return [...new Set(translated)];
+}
+
+interface SmartSearchResult {
+    model: string;
+    keywords: string[];
+}
+
+async function callOllama(query: string): Promise<SmartSearchResult | null> {
+    try {
+        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: OLLAMA_MODEL,
+                messages: [
+                    { role: 'system', content: SMART_SEARCH_SYSTEM_PROMPT },
+                    { role: 'user', content: query }
+                ],
+                stream: false,
+                think: false,
+                format: {
+                    type: 'object',
+                    properties: {
+                        model: { type: 'string' },
+                        keywords: { type: 'array', items: { type: 'string' } }
+                    },
+                    required: ['model', 'keywords']
+                },
+                options: { num_predict: 150 }
+            }),
+            signal: AbortSignal.timeout(30000),
+        });
+
+        if (!res.ok) return null;
+        const data = await res.json();
+        const content = data?.message?.content;
+        if (!content) return null;
+
+        const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+        const rawKeywords: string[] = parsed.keywords || parsed.part_keywords || [];
+
+        // Translate any Italian keywords that slipped through
+        const keywords = translateKeywords(rawKeywords);
+
+        return {
+            model: parsed.model || parsed.printer_model || '',
+            keywords,
+        };
+    } catch (e) {
+        console.error('Ollama call failed', e);
+        return null;
+    }
+}
+
+export interface SmartSearchResponse {
+    parts: ManualSparePart[];
+    aiExtracted?: { model: string; keywords: string[] };
+    fallback: boolean;
+    message?: string;
+}
+
+export async function smartSearchParts(
+    query: string,
+    modelHint?: string,
+): Promise<SmartSearchResponse> {
+    // 1. Try AI extraction
+    const ai = await callOllama(query);
+
+    if (ai && ai.keywords.length > 0) {
+        const model = ai.model || modelHint || '';
+
+        // Search for each keyword, merge results
+        const allResults: ManualSparePart[] = [];
+        const seenCodes = new Set<string>();
+
+        for (const kw of ai.keywords) {
+            const results = await searchSpareParts(model, kw, false);
+            for (const part of results) {
+                const key = `${part.part_code}-${part.model}`;
+                if (!seenCodes.has(key)) {
+                    seenCodes.add(key);
+                    allResults.push(part);
+                }
+            }
+        }
+
+        // If AI keywords found nothing, also try the original query terms
+        if (allResults.length === 0) {
+            const words = query.replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+            for (const w of words) {
+                // Also translate individual words
+                const translated = translateKeywords([w]);
+                const searchTerms = [...new Set([w, ...translated])];
+                for (const term of searchTerms) {
+                    const results = await searchSpareParts(model, term, false);
+                    for (const part of results) {
+                        const key = `${part.part_code}-${part.model}`;
+                        if (!seenCodes.has(key)) {
+                            seenCodes.add(key);
+                            allResults.push(part);
+                        }
+                    }
+                }
+            }
+        }
+
+        // If still nothing, try without model filter
+        if (allResults.length === 0 && model) {
+            for (const kw of ai.keywords) {
+                const results = await searchSpareParts('', kw, false);
+                for (const part of results) {
+                    const key = `${part.part_code}-${part.model}`;
+                    if (!seenCodes.has(key)) {
+                        seenCodes.add(key);
+                        allResults.push(part);
+                    }
+                }
+                if (allResults.length > 0) break; // found some, stop
+            }
+            if (allResults.length > 0) {
+                return {
+                    parts: allResults.slice(0, 50),
+                    aiExtracted: { model: ai.model, keywords: ai.keywords },
+                    fallback: false,
+                    message: `Nessun risultato per "${model}". Mostro risultati da altri modelli.`,
+                };
+            }
+        }
+
+        // Build message for 0 results
+        if (allResults.length === 0) {
+            return {
+                parts: [],
+                aiExtracted: { model: ai.model, keywords: ai.keywords },
+                fallback: false,
+                message: `Nessuna parte trovata per le keyword "${ai.keywords.join(', ')}"${model ? ` nel modello ${model}` : ''}. Prova con termini diversi o disattiva la ricerca AI.`,
+            };
+        }
+
+        return {
+            parts: allResults,
+            aiExtracted: { model: ai.model, keywords: ai.keywords },
+            fallback: false,
+        };
+    }
+
+    // 2. Fallback: direct search with original query
+    const model = modelHint || '';
+    const parts = await searchSpareParts(model, query, false);
+    return { parts, fallback: true };
+}

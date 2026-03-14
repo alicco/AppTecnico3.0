@@ -487,24 +487,33 @@ pub async fn search_parts(
 
     let mut query = sqlx::query_as::<_, crate::models::ManualSparePart>(&sql);
 
+    tracing::info!("Final Search SQL: {}", sql);
+
     // Bind model filter if present
     if !models_vec.is_empty() {
+        tracing::info!("Binding models: {:?}", models_vec);
         query = query.bind(&models_vec);
     }
 
     if let Some(ref section) = params.section {
         if !section.is_empty() {
+            tracing::info!("Binding section: {}", section);
             query = query.bind(section);
         }
     }
 
     if let Some(ref q) = params.q {
         if !q.trim().is_empty() {
-            query = query.bind(&query_q_code);
-            query = query.bind(&query_q_name);
+            let trimmed = q.trim();
+            let debug_code = format!("{}%", trimmed.to_uppercase());
+            let debug_name = format!("%{}%", trimmed);
+            tracing::info!("Binding q variants: code='{}', name='{}'", debug_code, debug_name);
+            query = query.bind(debug_code);
+            query = query.bind(debug_name);
         }
     }
 
+    tracing::info!("Binding limit: {}", limit);
     query = query.bind(limit);
 
     let mut parts = query

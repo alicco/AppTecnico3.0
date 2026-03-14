@@ -391,31 +391,55 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
         <div
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '14px 18px',
+            flexDirection: 'column',
+            gap: 8,
+            padding: '16px 18px',
             borderBottom: '1px solid var(--border-subtle)',
-            background: 'linear-gradient(90deg, rgba(56,189,248,0.05) 0%, transparent 60%)',
+            background: 'linear-gradient(180deg, rgba(56,189,248,0.05) 0%, transparent 100%)',
           }}
         >
-          <span
-            className="mono"
-            style={{
-              fontSize: '1.5rem',
-              fontWeight: 900,
-              color: 'var(--accent)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {error.code}
-          </span>
-          {error.classification && (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span
-              className="chip chip-blue"
-              style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: 6 }}
+              style={{
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--text-muted)',
+                marginBottom: 2,
+              }}
             >
-              {error.classification}
+              Codice d'errore
             </span>
+            <span
+              className="mono"
+              style={{
+                fontSize: '1.75rem',
+                fontWeight: 900,
+                color: 'var(--accent)',
+                letterSpacing: '-0.02em',
+                lineHeight: 1,
+              }}
+            >
+              {error.code}
+            </span>
+          </div>
+
+          {error.classification && (
+            <div style={{ alignSelf: 'flex-start' }}>
+              <span
+                className="chip chip-blue"
+                style={{
+                  fontSize: '0.8rem',
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  display: 'inline-flex'
+                }}
+              >
+                {error.classification}
+              </span>
+            </div>
           )}
         </div>
 
@@ -444,33 +468,35 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
             </Accordion>
           )}
 
-          {error.correction && (
-            <Accordion
-              label="Correction"
-              icon={error.correction.toLowerCase().includes('warning') ? IcoWarning : IcoCheck}
-              iconColor={error.correction.toLowerCase().includes('warning') ? 'var(--red)' : 'var(--text-secondary)'}
-            >
-              {error.correction.toLowerCase().includes('warning') ? (
-                <div
-                  style={{
-                    padding: '10px 12px',
-                    background: 'rgba(248,113,113,0.07)',
-                    border: '1px solid rgba(248,113,113,0.25)',
-                    borderRadius: 8,
-                    fontSize: '0.88rem',
-                    color: 'var(--red)',
-                    lineHeight: 1.6,
-                  }}
-                >
-                  ⚠️ {renderLinkedText(error.correction, onDipSwitchClick, true)}
-                </div>
-              ) : (
-                <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
-                  {renderLinkedText(error.correction, onDipSwitchClick, true)}
-                </p>
-              )}
-            </Accordion>
-          )}
+          <Accordion
+            label="Correction"
+            icon={error.correction?.toLowerCase().includes('warning') ? IcoWarning : IcoCheck}
+            iconColor={error.correction?.toLowerCase().includes('warning') ? 'var(--red)' : 'var(--text-secondary)'}
+          >
+            {!error.correction ? (
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
+                Nessuna correzione specifica indicata nel manuale.
+              </p>
+            ) : error.correction.toLowerCase().includes('warning') ? (
+              <div
+                style={{
+                  padding: '10px 12px',
+                  background: 'rgba(248,113,113,0.07)',
+                  border: '1px solid rgba(248,113,113,0.25)',
+                  borderRadius: 8,
+                  fontSize: '0.88rem',
+                  color: 'var(--red)',
+                  lineHeight: 1.6,
+                }}
+              >
+                ⚠️ {renderLinkedText(error.correction, onDipSwitchClick, true)}
+              </div>
+            ) : (
+              <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
+                {renderLinkedText(error.correction, onDipSwitchClick, true)}
+              </p>
+            )}
+          </Accordion>
 
           {error.faulty_part_isolation && (
             <Accordion label="Fault Isolation" icon={IcoWarning} iconColor="var(--amber)">

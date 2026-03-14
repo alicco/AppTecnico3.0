@@ -136,18 +136,36 @@ export interface ManualSparePart {
     similarity?: number;
 }
 
-export async function searchSpareParts(modelName: string, query: string, fuzzy: boolean = false) {
+export async function searchSpareParts(modelName?: string, query?: string, fuzzy: boolean = false) {
     try {
-        const params = new URLSearchParams({
-            model: modelName,
-            q: query,
-            fuzzy: fuzzy.toString()
-        });
-        const res = await fetch(`${API_URL}/parts?${params.toString()}`, { cache: 'no-store' });
-        if (!res.ok) return [];
-        return (await res.json()) as ManualSparePart[];
+        console.log('SearchSpareParts using Direct Supabase:', { modelName, query });
+
+        let dbQuery = supabase
+            .from('manual_spare_parts')
+            .select('*')
+            .limit(100);
+
+        if (query) {
+            // Search in both part_code and name using .or()
+            // We use % wildcards for partial match
+            dbQuery = dbQuery.or(`part_code.ilike.%${query}%,name.ilike.%${query}%`);
+        }
+
+        if (modelName) {
+            dbQuery = dbQuery.eq('model', modelName);
+        }
+
+        const { data, error } = await dbQuery;
+
+        if (error) {
+            console.error('Supabase search error:', error);
+            throw error;
+        }
+
+        console.log(`Supabase search returned ${data?.length || 0} results`);
+        return (data || []) as ManualSparePart[];
     } catch (e) {
-        console.error('Fetch parts failed', e);
+        console.error('Search spare parts via Supabase failed', e);
         return [];
     }
 }

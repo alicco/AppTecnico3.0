@@ -1,2 +1,27 @@
+<<<<<<< HEAD
 .firebase/
 .claude/
+=======
+# Environment variables - MAI committare credenziali
+backend/.env
+frontend/.env
+frontend/.env.local
+.env
+.env.*
+
+# Dipendenze
+node_modules/
+target/
+
+# Build
+.next/
+dist/
+build/
+
+# Log
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+>>>>>>> 6207a36007155a2263e592c0f6d29f0d47e4ba64

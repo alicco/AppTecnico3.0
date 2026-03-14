@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 version: 1
 applications:
   - appRoot: frontend
@@ -18,24 +17,3 @@ applications:
         paths:
           - node_modules/**/*
           - .next/cache/**/*
-=======
-version: 1
-applications:
-  - appRoot: frontend
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            - npm ci
-        build:
-          commands:
-            - npm run build
-      artifacts:
-        baseDirectory: .next
-        files:
-          - "**/*"
-      cache:
-        paths:
-          - node_modules/**/*
-          - .next/cache/**/*
->>>>>>> 6207a36007155a2263e592c0f6d29f0d47e4ba64

@@ -197,6 +197,7 @@ export default function Home() {
   const [partSectionsList, setPartSectionsList] = useState<string[]>([]);
   const [partResults, setPartResults] = useState<Part[]>([]);
   const [partLoading, setPartLoading] = useState(false);
+  const [selectedModelFilter, setSelectedModelFilter] = useState('');
 
   // Cart / favorites
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -881,8 +882,16 @@ export default function Home() {
               {partSearchMode === 'smart' ? (
                 <PartSearchAutocomplete
                   model=""
-                  onSelect={(part) => { if (part) setPartResults([part]); }}
-                  onResults={setPartResults}
+                  onResults={(results) => {
+                    setPartResults(results);
+                    setSelectedModelFilter(''); // Reset filter on new search
+                  }}
+                  onSelect={(part) => {
+                    if (part) {
+                      setPartResults([part]);
+                      setSelectedModelFilter('');
+                    }
+                  }}
                   placeholder="Cerca codice parte o descrizione (ricerca globale)…"
                 />
               ) : (
@@ -959,12 +968,31 @@ export default function Home() {
                     justifyContent: 'space-between',
                   }}
                 >
-                  <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>
-                    Risultati{' '}
-                    <span className="chip chip-neutral" style={{ marginLeft: 6 }}>
-                      {partResults.length}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>
+                      Risultati{' '}
+                      <span className="chip chip-neutral" style={{ marginLeft: 6 }}>
+                        {partResults.length}
+                      </span>
                     </span>
-                  </span>
+
+                    {partSearchMode === 'smart' && partResults.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 20 }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Filtra per modello:</span>
+                        <select
+                          value={selectedModelFilter}
+                          onChange={(e) => setSelectedModelFilter(e.target.value)}
+                          className="input-base"
+                          style={{ height: 32, padding: '0 8px', fontSize: '0.75rem', width: 'auto' }}
+                        >
+                          <option value="">Tutti i modelli</option>
+                          {Array.from(new Set(partResults.map(p => p.model))).sort().map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div style={{ overflowX: 'auto', maxHeight: 560, overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
@@ -991,60 +1019,76 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody>
-                      {partResults.map((part, idx) => {
-                        const uid = uniqueId(part);
-                        const isFav = cart.some((c) => uniqueId(c) === uid);
-                        return (
-                          <tr
-                            key={uid || idx}
-                            style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-elevated)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                          >
-                            <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>{part.page_number}</td>
-                            <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>{part.ref_number}</td>
-                            <td style={{ padding: '9px 12px' }}>
-                              <span className="chip chip-blue" style={{ fontSize: '0.68rem' }}>{part.model}</span>
-                            </td>
-                            <td style={{ padding: '9px 12px' }}>
-                              <span className="mono" style={{ color: 'var(--accent)', fontWeight: 700 }}>
-                                {part.part_code}
-                              </span>
-                            </td>
-                            <td style={{ padding: '9px 12px', maxWidth: 260 }}>{part.name}</td>
-                            <td style={{ padding: '9px 12px' }}>{part.quantity}</td>
-                            <td style={{ padding: '9px 12px' }}>
-                              <span className="chip chip-neutral" style={{ fontSize: '0.68rem', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
-                                {part.section_name}
-                              </span>
-                            </td>
-                            <td style={{ padding: '9px 12px' }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (isFav) {
-                                    const item = cart.find((c) => uniqueId(c) === uid);
-                                    if (item) { removeFromCart(item.cartId); toast.success('Rimosso dai preferiti'); }
-                                  } else {
-                                    addToCart(part);
-                                  }
-                                }}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  color: isFav ? 'var(--red)' : 'var(--text-muted)',
-                                  padding: 4,
-                                  display: 'flex',
-                                  transition: 'color 0.1s',
-                                }}
-                              >
-                                <IcoHeart filled={isFav} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {(() => {
+                        const filtered = selectedModelFilter
+                          ? partResults.filter(p => p.model === selectedModelFilter)
+                          : partResults;
+
+                        if (filtered.length === 0 && partResults.length > 0) {
+                          return (
+                            <tr>
+                              <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                Nessun risultato per il modello selezionato.
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filtered.map((part, idx) => {
+                          const uid = uniqueId(part);
+                          const isFav = cart.some((c) => uniqueId(c) === uid);
+                          return (
+                            <tr
+                              key={uid || idx}
+                              style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                            >
+                              <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>{part.page_number}</td>
+                              <td style={{ padding: '9px 12px', color: 'var(--text-secondary)' }}>{part.ref_number}</td>
+                              <td style={{ padding: '9px 12px' }}>
+                                <span className="chip chip-blue" style={{ fontSize: '0.68rem' }}>{part.model}</span>
+                              </td>
+                              <td style={{ padding: '9px 12px' }}>
+                                <span className="mono" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                                  {part.part_code}
+                                </span>
+                              </td>
+                              <td style={{ padding: '9px 12px', maxWidth: 260 }}>{part.name}</td>
+                              <td style={{ padding: '9px 12px' }}>{part.quantity}</td>
+                              <td style={{ padding: '9px 12px' }}>
+                                <span className="chip chip-neutral" style={{ fontSize: '0.68rem', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                                  {part.section_name}
+                                </span>
+                              </td>
+                              <td style={{ padding: '9px 12px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (isFav) {
+                                      const item = cart.find((c) => uniqueId(c) === uid);
+                                      if (item) { removeFromCart(item.cartId); toast.success('Rimosso dai preferiti'); }
+                                    } else {
+                                      addToCart(part);
+                                    }
+                                  }}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: isFav ? 'var(--red)' : 'var(--text-muted)',
+                                    padding: 4,
+                                    display: 'flex',
+                                    transition: 'color 0.1s',
+                                  }}
+                                >
+                                  <IcoHeart filled={isFav} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>

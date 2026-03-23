@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { searchErrors, type ErrorCode } from '@/app/actions/search';
 
 interface AutocompleteSearchProps {
@@ -27,6 +28,7 @@ export function AutocompleteSearch({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -71,6 +73,11 @@ export function AutocompleteSearch({
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchOptions(val), 280);
+    // Calcola posizione per dropdown fixed — usa l'input stesso come riferimento
+    if (inputRef.current) {
+      const r = inputRef.current.getBoundingClientRect();
+      setDropdownRect({ top: r.bottom + 4, left: r.left, width: r.width });
+    }
     setOpen(true);
   };
 
@@ -182,20 +189,20 @@ export function AutocompleteSearch({
         </div>
       </div>
 
-      {/* Dropdown */}
-      {open && options.length > 0 && (
+      {/* Dropdown — portaled nel body per evitare containing block da transform */}
+      {open && options.length > 0 && dropdownRect && typeof document !== 'undefined' && createPortal(
         <div
           className="animate-fade-in"
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 6px)',
-            left: 0,
-            right: 0,
+            position: 'fixed',
+            top: dropdownRect.top,
+            left: dropdownRect.left,
+            width: dropdownRect.width,
             background: 'var(--bg-card)',
             border: '1px solid var(--border-strong)',
             borderRadius: 'var(--radius-md)',
             boxShadow: 'var(--shadow-lg)',
-            zIndex: 100,
+            zIndex: 9999,
             maxHeight: 320,
             overflowY: 'auto',
           }}
@@ -247,7 +254,8 @@ export function AutocompleteSearch({
               )}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

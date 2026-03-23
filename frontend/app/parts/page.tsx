@@ -238,14 +238,13 @@ export default function PartsPage() {
                                 {activeTab === 0 ? (
                                     <Grid size={{ xs: 12, md: 8 }}>
                                         <PartSearchAutocomplete
-                                            model={model}
                                             onSelect={(part) => {
                                                 if (part) {
-                                                    setQuery(part.part_code); // Optional: can trigger distinct search or just add directly
-                                                    setResults([part]); // Show just this part or trigger search
+                                                    setQuery(part.part_code);
+                                                    setResults([part]);
                                                 }
                                             }}
-                                            onQueryChange={setQuery}
+                                            onResults={setResults}
                                         />
                                     </Grid>
                                 ) : (

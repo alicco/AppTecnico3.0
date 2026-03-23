@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { searchSpareParts, type ManualSparePart } from '@/app/actions/search';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useDebounce } from 'use-debounce';
+import type { ManualSparePart } from '@/app/actions/search';
 
 interface SparePartsSearchProps {
   open: boolean;
@@ -11,9 +12,122 @@ interface SparePartsSearchProps {
   model: string;
 }
 
+// Models that share the same spare parts catalog
+const MODEL_FAMILIES: Record<string, string[]> = {
+  C4065: ['C4080', 'C4070'],
+  C4070: ['C4080', 'C4065'],
+  C4080: ['C4065', 'C4070'],
+  C12000: ['C12010'],
+  C12010: ['C12000'],
+};
+
+// Search Supabase directly from the browser (no server action layer)
+async function findParts(modelName: string, query: string): Promise<ManualSparePart[]> {
+  const trimmed = query.trim();
+  if (!trimmed || !modelName) return [];
+
+  const run = async (term: string): Promise<ManualSparePart[]> => {
+    const pat = `%${term}%`;
+    const base = supabase
+      .from('manual_spare_parts')
+      .select('model, section_name, page_number, ref_number, part_code, name, quantity')
+      .eq('model', modelName)
+      .order('section_name')
+      .limit(40);
+
+    const [{ data: byName }, { data: bySection }] = await Promise.all([
+      base.ilike('name', pat),
+      supabase
+        .from('manual_spare_parts')
+        .select('model, section_name, page_number, ref_number, part_code, name, quantity')
+        .eq('model', modelName)
+        .order('section_name')
+        .limit(40)
+        .ilike('section_name', pat),
+    ]);
+
+    const seen = new Set<string>();
+    const merged: ManualSparePart[] = [];
+    for (const r of [...(byName || []), ...(bySection || [])]) {
+      const key = (r as ManualSparePart).part_code + (r as ManualSparePart).model;
+      if (!seen.has(key)) { seen.add(key); merged.push(r as ManualSparePart); }
+    }
+    return merged;
+  };
+
+  // 1. Acronym in parentheses e.g. "(PRCB)" → "PRCB"
+  const acMatch = trimmed.match(/\(([A-Z0-9]{2,8})\)/);
+  if (acMatch) {
+    const res = await run(acMatch[1]);
+    if (res.length > 0) return res;
+  }
+
+  // 2. Full phrase
+  const phrase = await run(trimmed);
+  if (phrase.length > 0) return phrase;
+
+  // 3. Keyword fallback — longest meaningful word first
+  const stopWords = new Set(['unit', 'the', 'and', 'for', 'board', 'assembly', 'assy',
+    'with', 'from', 'supply', 'drive', 'section', 'part']);
+  const words = trimmed
+    .split(/[\s/\-()+0-9]+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length > 3 && !stopWords.has(w.toLowerCase()))
+    .sort((a, b) => b.length - a.length);
+
+  for (const word of words.slice(0, 4)) {
+    const res = await run(word);
+    if (res.length > 0) return res;
+  }
+
+  // Fallback: try sibling models from the same family
+  const siblings = MODEL_FAMILIES[modelName] ?? [];
+  for (const sibling of siblings) {
+    const siblingRun = async (term: string): Promise<ManualSparePart[]> => {
+      const pat = `%${term}%`;
+      const base = () =>
+        supabase
+          .from('manual_spare_parts')
+          .select('model, section_name, page_number, ref_number, part_code, name, quantity')
+          .eq('model', sibling)
+          .order('section_name')
+          .limit(40);
+      const [{ data: byName }, { data: bySection }] = await Promise.all([
+        base().ilike('name', pat),
+        base().ilike('section_name', pat),
+      ]);
+      const seen = new Set<string>();
+      const merged: ManualSparePart[] = [];
+      for (const r of [...(byName || []), ...(bySection || [])]) {
+        const key = (r as ManualSparePart).part_code + (r as ManualSparePart).model;
+        if (!seen.has(key)) { seen.add(key); merged.push(r as ManualSparePart); }
+      }
+      return merged;
+    };
+
+    // relabel results to show the originally requested model
+    const relabel = (res: ManualSparePart[]) =>
+      res.map((r) => ({ ...r, model: modelName }));
+
+    // Try acronym, phrase, keywords on sibling
+    if (acMatch) {
+      const res = await siblingRun(acMatch[1]);
+      if (res.length > 0) return relabel(res);
+    }
+    const phraseRes2 = await siblingRun(trimmed);
+    if (phraseRes2.length > 0) return relabel(phraseRes2);
+    for (const word of words.slice(0, 4)) {
+      const res = await siblingRun(word);
+      if (res.length > 0) return relabel(res);
+    }
+  }
+
+  return [];
+}
+
 export function SparePartsSearch({ open, onClose, initialQuery = '', model }: SparePartsSearchProps) {
   const [query, setQuery] = useState(initialQuery);
-  const [debouncedQuery] = useDebounce(query, 450);
+  const [debouncedQuery] = useDebounce(query, 350);
   const [results, setResults] = useState<ManualSparePart[]>([]);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,17 +145,21 @@ export function SparePartsSearch({ open, onClose, initialQuery = '', model }: Sp
     if (!open) setResults([]);
   }, [open]);
 
-  // Fetch on debounced query
-  useEffect(() => {
-    if (!model || !debouncedQuery) {
-      setResults([]);
-      return;
-    }
+  // Search on debounced query
+  const doSearch = useCallback(async (q: string) => {
+    if (!model || !q.trim()) { setResults([]); return; }
     setLoading(true);
-    searchSpareParts(model, debouncedQuery, true)
-      .then(setResults)
-      .finally(() => setLoading(false));
-  }, [debouncedQuery, model]);
+    try {
+      const data = await findParts(model, q);
+      setResults(data);
+    } finally {
+      setLoading(false);
+    }
+  }, [model]);
+
+  useEffect(() => {
+    doSearch(debouncedQuery);
+  }, [debouncedQuery, doSearch]);
 
   // Close on Escape
   useEffect(() => {
@@ -91,10 +209,10 @@ export function SparePartsSearch({ open, onClose, initialQuery = '', model }: Sp
             </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                Spare Parts Search
+                Ricerca Ricambi
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                Model: <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{model}</span>
+                Modello: <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{model}</span>
               </div>
             </div>
           </div>
@@ -127,19 +245,11 @@ export function SparePartsSearch({ open, onClose, initialQuery = '', model }: Sp
           <div style={{ position: 'relative' }}>
             <svg
               style={{
-                position: 'absolute',
-                left: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: 16,
-                height: 16,
-                color: 'var(--text-secondary)',
-                pointerEvents: 'none',
+                position: 'absolute', left: 12, top: '50%',
+                transform: 'translateY(-50%)', width: 16, height: 16,
+                color: 'var(--text-secondary)', pointerEvents: 'none',
               }}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
             >
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
@@ -150,7 +260,7 @@ export function SparePartsSearch({ open, onClose, initialQuery = '', model }: Sp
               type="text"
               className="input-base"
               style={{ paddingLeft: 38, paddingRight: 36 }}
-              placeholder="Enter part code or description…"
+              placeholder="Codice parte o descrizione…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"
@@ -160,12 +270,8 @@ export function SparePartsSearch({ open, onClose, initialQuery = '', model }: Sp
               <div
                 className="spinner"
                 style={{
-                  position: 'absolute',
-                  right: 12,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: 16,
-                  height: 16,
+                  position: 'absolute', right: 12, top: '50%',
+                  transform: 'translateY(-50%)', width: 16, height: 16,
                 }}
               />
             )}
@@ -187,71 +293,36 @@ export function SparePartsSearch({ open, onClose, initialQuery = '', model }: Sp
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span
-                    className="mono"
-                    style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.88rem' }}
-                  >
+                  <span className="mono" style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.88rem' }}>
                     {part.part_code}
                   </span>
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    {part.similarity != null && (
-                      <span className="chip chip-green" style={{ fontSize: '0.68rem' }}>
-                        {Math.round(part.similarity * 100)}% match
-                      </span>
-                    )}
-                    <span className="chip chip-neutral" style={{ fontSize: '0.68rem' }}>
-                      Qty {part.quantity ?? '–'}
-                    </span>
-                  </div>
+                  <span className="chip chip-neutral" style={{ fontSize: '0.68rem' }}>
+                    Qty {part.quantity ?? '–'}
+                  </span>
                 </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 4 }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 6 }}>
                   {part.name}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   <span className="chip chip-blue" style={{ fontSize: '0.66rem' }}>{part.model}</span>
                   <span className="chip chip-neutral" style={{ fontSize: '0.66rem' }}>{part.section_name}</span>
-                  <span className="chip chip-neutral" style={{ fontSize: '0.66rem' }}>Pg {part.page_number}</span>
-                  <span className="chip chip-neutral" style={{ fontSize: '0.66rem' }}>Ref {part.ref_number}</span>
+                  <span className="chip chip-neutral" style={{ fontSize: '0.66rem' }}>Pag. {part.page_number}</span>
+                  <span className="chip chip-neutral" style={{ fontSize: '0.66rem' }}>Rif. {part.ref_number}</span>
                 </div>
               </div>
             ))
           ) : (
             !loading && debouncedQuery && (
-              <div
-                style={{
-                  padding: '40px 20px',
-                  textAlign: 'center',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                <svg
-                  style={{ width: 40, height: 40, margin: '0 auto 12px', opacity: 0.4, display: 'block' }}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
-                </svg>
-                <div style={{ fontSize: '0.9rem', marginBottom: 4 }}>No parts found</div>
-                <div style={{ fontSize: '0.78rem', opacity: 0.7 }}>
-                  Try a broader term or check the part code.
-                </div>
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '0.9rem', marginBottom: 4 }}>Nessun ricambio trovato</div>
+                <div style={{ fontSize: '0.78rem', opacity: 0.7 }}>Prova con un termine più generico.</div>
               </div>
             )
           )}
 
           {!loading && !debouncedQuery && (
-            <div
-              style={{
-                padding: '40px 20px',
-                textAlign: 'center',
-                color: 'var(--text-secondary)',
-                fontSize: '0.85rem',
-              }}
-            >
-              Type a part code or description to search
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+              Digita un codice parte o descrizione per cercare
             </div>
           )}
         </div>

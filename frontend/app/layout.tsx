@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { Toaster } from "react-hot-toast";
+import { Syne, Inter } from "next/font/google";
 import "./globals.css";
 
+const syne = Syne({ subsets: ['latin'], weight: ['700', '800'], variable: '--font-syne' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+
 export const metadata: Metadata = {
-  title: "KM Insight — Intelligent Service Platform",
-  description: "Advanced diagnostics and spare parts lookup for Konica Minolta systems. Developed by AISAC.",
+  title: "KonicaMinolta Identity — Piattaforma di Diagnostica Tecnica",
+  description: "Piattaforma di diagnostica e ricerca tecnica per tecnici di servizio Konica Minolta. Developed by AISAC.",
 };
 
 export default function RootLayout({
@@ -13,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${syne.variable} ${inter.variable}`}>
       <body>
         {children}
         <Toaster

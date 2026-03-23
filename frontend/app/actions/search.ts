@@ -11,11 +11,14 @@ export interface Printer {
 
 export async function getPrinters(): Promise<Printer[]> {
     try {
-        const res = await fetch(`${API_URL}/printers`, { cache: 'no-store' });
-        if (!res.ok) return [];
-        return (await res.json()) as Printer[];
+        const { data, error } = await supabase
+            .from('printers')
+            .select('id, model_name')
+            .order('model_name');
+        if (error) { console.error('getPrinters failed', error); return []; }
+        return (data || []) as Printer[];
     } catch (e) {
-        console.error('Fetch printers failed', e);
+        console.error('getPrinters failed', e);
         return [];
     }
 }
@@ -30,46 +33,67 @@ export interface ErrorCode {
 export async function searchErrors(modelName: string, codeQuery: string, exact: boolean = false) {
     try {
         const trimmedQuery = (codeQuery || '').trim();
-        const params = new URLSearchParams({ model: modelName });
-        if (trimmedQuery) params.append('code', trimmedQuery);
-        // Note: Backend might not support 'exact' yet, so we filter locally too to be safe.
-        // if (exact) params.append('exact', 'true'); 
 
-        const res = await fetch(`${API_URL}/errors?${params.toString()}`, { cache: 'no-store' });
-        if (!res.ok) return [];
+        // Get printer_id from model_name
+        const { data: printer, error: printerError } = await supabase
+            .from('printers')
+            .select('id')
+            .eq('model_name', modelName)
+            .single();
+        if (printerError || !printer) return [];
 
-        const data = (await res.json()) as ErrorCode[];
+        // Build query with smart code matching
+        let query = supabase
+            .from('error_codes')
+            .select('id, code, classification, cause, measures, solution, estimated_abnormal_parts, correction, faulty_part_isolation, note')
+            .eq('printer_id', printer.id);
 
-        if (exact && trimmedQuery) {
-            // Precise Local Filtering
-            const isNumericQuery = /^\d+$/.test(trimmedQuery);
-
-            if (isNumericQuery) {
-                // If query is just numbers (e.g. "202"), match any code effectively equal to those numbers
-                // "C-0202" -> "0202" != "202". We need to be careful.
-                // Usually "202" should match "C-0202". 
-                // Let's strip non-digits.
-                const cleanQuery = trimmedQuery.replace(/\D/g, '');
-                return data.filter(item => {
-                    const cleanCode = item.code.replace(/\D/g, '');
-                    // Check for exact equality OR if the code ends with the query (suffix match often desired for error codes)
-                    // But explicitly requested "exact match". 
-                    // Let's assume strict equality of numeric parts for now as "Exact".
-                    return cleanCode === cleanQuery || Number(cleanCode) === Number(cleanQuery);
-                });
+        if (trimmedQuery) {
+            const isNumeric = /^\d+$/.test(trimmedQuery);
+            if (isNumeric) {
+                // Numeric: match codes whose digit portion contains this sequence
+                // e.g. "0001" → matches "C-0001"
+                query = query.ilike('code', `%${trimmedQuery}%`);
             } else {
-                // Alphanumeric exact match (e.g. "C-240")
-                const cleanQuery = trimmedQuery.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
-                return data.filter(item => {
-                    const cleanCode = item.code.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
-                    return cleanCode === cleanQuery;
-                });
+                // Alphanumeric: user typed "C0001", "C-0001", "C-00", etc.
+                // Strip dashes/spaces → canonical form e.g. "C0001"
+                const clean = trimmedQuery.replace(/[-\s]/g, '').toUpperCase();
+                // Reconstruct with dash after leading letters: "C0001" → "C-0001"
+                const withDash = clean.replace(/^([A-Z]+)(\d.*)$/, '$1-$2');
+                // Try both forms: covers C0001, C-0001, C-0 prefix
+                if (withDash !== clean) {
+                    query = query.or(`code.ilike.${withDash}%,code.ilike.${clean}%`);
+                } else {
+                    query = query.ilike('code', `${clean}%`);
+                }
             }
         }
 
-        return data;
+        const limit = exact ? 50 : 20;
+        const { data, error } = await query.order('code').limit(limit);
+        if (error) { console.error('searchErrors failed', error); return []; }
+
+        const results = (data || []) as ErrorCode[];
+
+        // Exact mode: narrow down to precise match
+        if (exact && trimmedQuery) {
+            const isNumeric = /^\d+$/.test(trimmedQuery);
+            if (isNumeric) {
+                const cleanQuery = trimmedQuery.replace(/\D/g, '');
+                const exact_match = results.filter(item => item.code.replace(/\D/g, '') === cleanQuery);
+                return exact_match.length > 0 ? exact_match : results;
+            } else {
+                const cleanQuery = trimmedQuery.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
+                const exact_match = results.filter(item =>
+                    item.code.replace(/[^0-9a-zA-Z]/g, '').toUpperCase() === cleanQuery
+                );
+                return exact_match.length > 0 ? exact_match : results;
+            }
+        }
+
+        return results;
     } catch (e) {
-        console.error('Search failed', e);
+        console.error('searchErrors failed', e);
         return [];
     }
 }
@@ -87,16 +111,22 @@ export async function getErrorDetails(id: string) {
 
 export async function getAllModelCodes(modelName: string) {
     try {
-        const params = new URLSearchParams({
-            model: modelName,
-            summary: '1'
-        });
+        const { data: printer } = await supabase
+            .from('printers')
+            .select('id')
+            .eq('model_name', modelName)
+            .single();
+        if (!printer) return [];
 
-        const res = await fetch(`${API_URL}/errors?${params.toString()}`, { cache: 'no-store' });
-        if (!res.ok) return [];
-        return await res.json();
+        const { data, error } = await supabase
+            .from('error_codes')
+            .select('id, code, classification')
+            .eq('printer_id', printer.id)
+            .order('code');
+        if (error) return [];
+        return data || [];
     } catch (e) {
-        console.error('Fetch all codes failed', e);
+        console.error('getAllModelCodes failed', e);
         return [];
     }
 }
@@ -114,12 +144,16 @@ export interface DipSwitch {
 
 export async function getDipSwitches(modelName: string) {
     try {
-        const params = new URLSearchParams({ model: modelName });
-        const res = await fetch(`${API_URL}/dipswitches?${params.toString()}`, { cache: 'no-store' });
-        if (!res.ok) return [];
-        return (await res.json()) as DipSwitch[];
+        const { data, error } = await supabase
+            .from('dip_switches')
+            .select('id, model_name, switch_number, bit_number, function_name, setting_0, setting_1, default_val')
+            .eq('model_name', modelName)
+            .order('switch_number')
+            .order('bit_number');
+        if (error) { console.error('getDipSwitches failed', error); return []; }
+        return (data || []) as DipSwitch[];
     } catch (e) {
-        console.error('Fetch dipswitches failed', e);
+        console.error('getDipSwitches failed', e);
         return [];
     }
 }
@@ -135,235 +169,146 @@ export interface ManualSparePart {
     similarity?: number;
 }
 
-export async function searchSpareParts(modelName: string, query: string, fuzzy: boolean = false) {
+const MODEL_FAMILIES: Record<string, string[]> = {
+    C4065: ['C4080', 'C4070'],
+    C4070: ['C4080', 'C4065'],
+    C4080: ['C4065', 'C4070'],
+    C12000: ['C12010'],
+    C12010: ['C12000'],
+};
+
+export async function searchSpareParts(modelName: string, query: string, _fuzzy: boolean = false): Promise<ManualSparePart[]> {
+    const trimmed = query.trim();
+    if (!trimmed || !modelName) return [];
+
+    // Deduplicated merge of two arrays by part_code+model
+    const merge = (a: ManualSparePart[], b: ManualSparePart[]) => {
+        const seen = new Set(a.map((r) => r.part_code + r.model));
+        return [...a, ...b.filter((r) => !seen.has(r.part_code + r.model))];
+    };
+
+    // Search by term: two separate ilike queries (name OR section_name) then merged
+    const run = async (term: string): Promise<ManualSparePart[]> => {
+        const pat = `%${term}%`;
+        const base = () =>
+            supabase
+                .from('manual_spare_parts')
+                .select('model, section_name, page_number, ref_number, part_code, name, quantity')
+                .eq('model', modelName)
+                .order('section_name')
+                .limit(40);
+
+        const [{ data: byName }, { data: bySection }] = await Promise.all([
+            base().ilike('name', pat),
+            base().ilike('section_name', pat),
+        ]);
+        return merge((byName || []) as ManualSparePart[], (bySection || []) as ManualSparePart[]);
+    };
+
+    // Same logic but without model filter — fallback across all models
+    const runAll = async (term: string): Promise<ManualSparePart[]> => {
+        const pat = `%${term}%`;
+        const base = () =>
+            supabase
+                .from('manual_spare_parts')
+                .select('model, section_name, page_number, ref_number, part_code, name, quantity')
+                .order('section_name')
+                .limit(40);
+
+        const [{ data: byName }, { data: bySection }] = await Promise.all([
+            base().ilike('name', pat),
+            base().ilike('section_name', pat),
+        ]);
+        return merge((byName || []) as ManualSparePart[], (bySection || []) as ManualSparePart[]);
+    };
+
+    const search = async (runFn: (term: string) => Promise<ManualSparePart[]>): Promise<ManualSparePart[]> => {
+        // 1. Acronym in parentheses: "(PRCB)" → "PRCB"
+        const acronymMatch = trimmed.match(/\(([A-Z0-9]{2,8})\)/);
+        if (acronymMatch) {
+            const res = await runFn(acronymMatch[1]);
+            if (res.length > 0) return res;
+        }
+
+        // 2. Full phrase
+        const phraseRes = await runFn(trimmed);
+        if (phraseRes.length > 0) return phraseRes;
+
+        // 3. Keyword fallback
+        const stopWords = new Set(['unit', 'the', 'and', 'for', 'board', 'assembly', 'assy',
+            'with', 'from', 'supply', 'drive', 'section', 'part']);
+        const words = trimmed
+            .split(/[\s/\-()+0-9]+/)
+            .map((w) => w.trim())
+            .filter((w) => w.length > 3 && !stopWords.has(w.toLowerCase()))
+            .sort((a, b) => b.length - a.length);
+
+        for (const word of words.slice(0, 4)) {
+            const res = await runFn(word);
+            if (res.length > 0) return res;
+        }
+
+        return [];
+    };
+
     try {
-        const params = new URLSearchParams({
-            model: modelName,
-            q: query,
-            fuzzy: fuzzy.toString()
-        });
-        const res = await fetch(`${API_URL}/parts?${params.toString()}`, { cache: 'no-store' });
-        if (!res.ok) return [];
-        return (await res.json()) as ManualSparePart[];
+        // First: search with exact model
+        const withModel = await search(run);
+        if (withModel.length > 0) return withModel;
+
+        // Fallback 1: try sibling models from the same family (e.g. C4065 → C4080)
+        const siblings = MODEL_FAMILIES[modelName] ?? [];
+        for (const sibling of siblings) {
+            const siblingRun = async (term: string): Promise<ManualSparePart[]> => {
+                const pat = `%${term}%`;
+                const base = () =>
+                    supabase
+                        .from('manual_spare_parts')
+                        .select('model, section_name, page_number, ref_number, part_code, name, quantity')
+                        .eq('model', sibling)
+                        .order('section_name')
+                        .limit(40);
+                const [{ data: byName }, { data: bySection }] = await Promise.all([
+                    base().ilike('name', pat),
+                    base().ilike('section_name', pat),
+                ]);
+                return merge((byName || []) as ManualSparePart[], (bySection || []) as ManualSparePart[]);
+            };
+            const res = await search(siblingRun);
+            if (res.length > 0) return res.map((r) => ({ ...r, model: modelName }));
+        }
+
+        // Fallback 2: search across all models
+        const acrossAll = await search(runAll);
+        return acrossAll;
     } catch (e) {
-        console.error('Fetch parts failed', e);
+        console.error('[searchSpareParts] ERROR:', e);
         return [];
     }
 }
 
-// --- AI-powered Smart Search via Ollama (Qwen 3.5) ---
+// --- Direct Supabase search (bypasses Rust backend) ---
 
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3.5:4b';
+export async function searchPartsDirectly(query: string): Promise<ManualSparePart[]> {
+    const trimmed = query.trim();
+    if (!trimmed || trimmed.length < 2) return [];
 
-const SMART_SEARCH_SYSTEM_PROMPT = `Extract printer model and English part keywords from the query. ALWAYS translate Italian to English. Use: corona=charging unit, tamburo=drum, fusore=fuser, cinghia=belt, rullo=roller, sviluppatore=developer, pulizia=cleaning, lama=blade, sensore=sensor, ventola=fan, scheda=board, alimentatore=feeder, cassetto=tray, motore=motor, ingranaggio=gear, molla=spring, guida=guide, cavo=cable, connettore=connector, pannello=panel, sportello=cover, vetro=glass, cuscinetto=bearing, colore=color. Output JSON only.`;
-
-// Fallback dictionary: if AI returns Italian keywords, translate them
-const IT_TO_EN: Record<string, string[]> = {
-    'corona': ['charging', 'corona'],
-    'tamburo': ['drum', 'OPC'],
-    'fusore': ['fuser', 'fusing'],
-    'cinghia': ['belt', 'transfer belt'],
-    'rullo': ['roller'],
-    'sviluppatore': ['developer', 'developing'],
-    'pulizia': ['cleaning'],
-    'lama': ['blade'],
-    'sensore': ['sensor'],
-    'ventola': ['fan'],
-    'scheda': ['board', 'PCB'],
-    'alimentatore': ['feeder'],
-    'cassetto': ['tray'],
-    'motore': ['motor'],
-    'ingranaggio': ['gear'],
-    'molla': ['spring'],
-    'guida': ['guide'],
-    'cavo': ['cable'],
-    'connettore': ['connector'],
-    'pannello': ['panel'],
-    'sportello': ['cover', 'door'],
-    'vetro': ['glass'],
-    'cuscinetto': ['bearing'],
-    'colore': ['color'],
-    'nero': ['black', 'K'],
-    'trasferimento': ['transfer'],
-    'pressione': ['pressure'],
-    'separazione': ['separation'],
-    'uscita': ['exit'],
-    'ingresso': ['entrance', 'feed'],
-    'carta': ['paper'],
-    'toner': ['toner'],
-};
-
-function translateKeywords(keywords: string[]): string[] {
-    const translated: string[] = [];
-    for (const kw of keywords) {
-        const lower = kw.toLowerCase();
-        if (IT_TO_EN[lower]) {
-            translated.push(...IT_TO_EN[lower]);
-        } else {
-            // Check if any Italian word is a substring of the keyword
-            let found = false;
-            for (const [it, en] of Object.entries(IT_TO_EN)) {
-                if (lower.includes(it)) {
-                    translated.push(...en);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                translated.push(kw);
-            }
-        }
-    }
-    return [...new Set(translated)];
-}
-
-interface SmartSearchResult {
-    model: string;
-    keywords: string[];
-}
-
-async function callOllama(query: string): Promise<SmartSearchResult | null> {
     try {
-        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: OLLAMA_MODEL,
-                messages: [
-                    { role: 'system', content: SMART_SEARCH_SYSTEM_PROMPT },
-                    { role: 'user', content: query }
-                ],
-                stream: false,
-                think: false,
-                format: {
-                    type: 'object',
-                    properties: {
-                        model: { type: 'string' },
-                        keywords: { type: 'array', items: { type: 'string' } }
-                    },
-                    required: ['model', 'keywords']
-                },
-                options: { num_predict: 150 }
-            }),
-            signal: AbortSignal.timeout(30000),
-        });
+        const upperQ = trimmed.toUpperCase();
+        const { data, error } = await supabase
+            .from('manual_spare_parts')
+            .select('model, section_name, page_number, ref_number, part_code, name, quantity')
+            .or(`part_code.ilike.${upperQ}*,name.ilike.*${trimmed}*`)
+            .order('part_code')
+            .limit(200);
 
-        if (!res.ok) return null;
-        const data = await res.json();
-        const content = data?.message?.content;
-        if (!content) return null;
-
-        const parsed = typeof content === 'string' ? JSON.parse(content) : content;
-        const rawKeywords: string[] = parsed.keywords || parsed.part_keywords || [];
-
-        // Translate any Italian keywords that slipped through
-        const keywords = translateKeywords(rawKeywords);
-
-        return {
-            model: parsed.model || parsed.printer_model || '',
-            keywords,
-        };
+        if (error) {
+            console.error('Supabase search failed', error);
+            return [];
+        }
+        return (data || []) as ManualSparePart[];
     } catch (e) {
-        console.error('Ollama call failed', e);
-        return null;
+        console.error('Search failed', e);
+        return [];
     }
-}
-
-export interface SmartSearchResponse {
-    parts: ManualSparePart[];
-    aiExtracted?: { model: string; keywords: string[] };
-    fallback: boolean;
-    message?: string;
-}
-
-export async function smartSearchParts(
-    query: string,
-    modelHint?: string,
-): Promise<SmartSearchResponse> {
-    // 1. Try AI extraction
-    const ai = await callOllama(query);
-
-    if (ai && ai.keywords.length > 0) {
-        const model = ai.model || modelHint || '';
-
-        // Search for each keyword, merge results
-        const allResults: ManualSparePart[] = [];
-        const seenCodes = new Set<string>();
-
-        for (const kw of ai.keywords) {
-            const results = await searchSpareParts(model, kw, false);
-            for (const part of results) {
-                const key = `${part.part_code}-${part.model}`;
-                if (!seenCodes.has(key)) {
-                    seenCodes.add(key);
-                    allResults.push(part);
-                }
-            }
-        }
-
-        // If AI keywords found nothing, also try the original query terms
-        if (allResults.length === 0) {
-            const words = query.replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 2);
-            for (const w of words) {
-                // Also translate individual words
-                const translated = translateKeywords([w]);
-                const searchTerms = [...new Set([w, ...translated])];
-                for (const term of searchTerms) {
-                    const results = await searchSpareParts(model, term, false);
-                    for (const part of results) {
-                        const key = `${part.part_code}-${part.model}`;
-                        if (!seenCodes.has(key)) {
-                            seenCodes.add(key);
-                            allResults.push(part);
-                        }
-                    }
-                }
-            }
-        }
-
-        // If still nothing, try without model filter
-        if (allResults.length === 0 && model) {
-            for (const kw of ai.keywords) {
-                const results = await searchSpareParts('', kw, false);
-                for (const part of results) {
-                    const key = `${part.part_code}-${part.model}`;
-                    if (!seenCodes.has(key)) {
-                        seenCodes.add(key);
-                        allResults.push(part);
-                    }
-                }
-                if (allResults.length > 0) break; // found some, stop
-            }
-            if (allResults.length > 0) {
-                return {
-                    parts: allResults.slice(0, 50),
-                    aiExtracted: { model: ai.model, keywords: ai.keywords },
-                    fallback: false,
-                    message: `Nessun risultato per "${model}". Mostro risultati da altri modelli.`,
-                };
-            }
-        }
-
-        // Build message for 0 results
-        if (allResults.length === 0) {
-            return {
-                parts: [],
-                aiExtracted: { model: ai.model, keywords: ai.keywords },
-                fallback: false,
-                message: `Nessuna parte trovata per le keyword "${ai.keywords.join(', ')}"${model ? ` nel modello ${model}` : ''}. Prova con termini diversi o disattiva la ricerca AI.`,
-            };
-        }
-
-        return {
-            parts: allResults,
-            aiExtracted: { model: ai.model, keywords: ai.keywords },
-            fallback: false,
-        };
-    }
-
-    // 2. Fallback: direct search with original query
-    const model = modelHint || '';
-    const parts = await searchSpareParts(model, query, false);
-    return { parts, fallback: true };
 }

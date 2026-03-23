@@ -5,7 +5,7 @@ import { getPrinters, searchErrors, type ErrorCode } from '@/app/actions/search'
 import { ErrorCard } from '@/components/ui/ErrorCard';
 import { AutocompleteSearch } from '@/components/ui/AutocompleteSearch';
 import { DipSwitchViewer } from '@/components/ui/DipSwitchViewer';
-import { PartSearchAutocomplete, Part } from '@/components/ui/PartSearchAutocomplete';
+import { PartSearchAutocomplete, type Part } from '@/components/ui/PartSearchAutocomplete';
 import { toast } from 'react-hot-toast';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -197,6 +197,8 @@ export default function Home() {
   const [partSectionsList, setPartSectionsList] = useState<string[]>([]);
   const [partResults, setPartResults] = useState<Part[]>([]);
   const [partLoading, setPartLoading] = useState(false);
+  const [partHasSearched, setPartHasSearched] = useState(false);
+  const [partFilterModel, setPartFilterModel] = useState('');
 
   // Cart / favorites
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -324,7 +326,6 @@ export default function Home() {
   if (!expandedSection) {
     return (
       <main
-        className="bg-dots"
         style={{
           minHeight: '100vh',
           display: 'flex',
@@ -334,99 +335,134 @@ export default function Home() {
           padding: '40px 24px',
           position: 'relative',
           overflow: 'hidden',
+          background: 'var(--bg-base)',
         }}
       >
-        {/* Gradient orbs */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -100,
-            left: -100,
-            width: 400,
-            height: 400,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(56,189,248,0.07) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: -100,
-            right: -100,
-            width: 500,
-            height: 500,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(248,113,113,0.05) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }}
-        />
+        {/* Background layers */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
+        }} />
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+          background: 'linear-gradient(90deg, transparent 10%, #0057a8 35%, #0057a8 65%, transparent 90%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', top: -280, right: -180, width: 700, height: 700,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0,87,168,0.08) 0%, transparent 60%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: -200, left: -200, width: 600, height: 600,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(200,16,46,0.05) 0%, transparent 60%)',
+          pointerEvents: 'none',
+        }} />
 
-        <div className="animate-fade-up" style={{ textAlign: 'center', marginBottom: 60, maxWidth: 560 }}>
+        {/* Hero section */}
+        <div className="animate-fade-up" style={{ textAlign: 'center', marginBottom: 48, maxWidth: 780, width: '100%' }}>
 
-          <h1
-            style={{
-              fontSize: 'clamp(2rem, 5vw, 3.2rem)',
-              fontWeight: 900,
+          {/* Eyebrow label */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 20,
+          }}>
+            <div style={{ width: 28, height: 1, background: 'rgba(0,87,168,0.7)' }} />
+            <span style={{
+              fontSize: '0.62rem', letterSpacing: '0.4em', textTransform: 'uppercase',
+              color: '#0076c0', fontWeight: 700,
+            }}>
+              Konica Minolta
+            </span>
+            <div style={{ width: 28, height: 1, background: 'rgba(0,87,168,0.7)' }} />
+          </div>
+
+          {/* Main title */}
+          <h1 style={{ margin: 0, lineHeight: 1, marginBottom: 20 }}>
+            <div style={{
+              fontFamily: 'var(--font-syne)',
+              fontSize: 'clamp(3rem, 9vw, 5.5rem)',
+              fontWeight: 800,
               letterSpacing: '-0.04em',
-              marginBottom: 10,
-              lineHeight: 1.1,
-            }}
-          >
-            <span className="text-gradient-brand">KM Insight</span>
+              lineHeight: 0.9,
+              color: 'var(--text-primary)',
+              textTransform: 'uppercase',
+            }}>
+              Identity
+            </div>
           </h1>
 
-          <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-            Advanced Service Intelligence & Diagnostics for Konica Minolta
+          {/* Divider line with accent dot */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 20,
+          }}>
+            <div style={{ flex: 1, maxWidth: 120, height: 1, background: 'var(--border-subtle)' }} />
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#0076c0', margin: '0 12px' }} />
+            <div style={{ flex: 1, maxWidth: 120, height: 1, background: 'var(--border-subtle)' }} />
+          </div>
+
+          <p style={{
+            fontSize: '0.78rem', color: 'var(--text-secondary)',
+            letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 500,
+            marginBottom: 28,
+          }}>
+            Piattaforma di diagnostica e ricerca tecnica
           </p>
 
-          <p
-            style={{
-              fontSize: '0.75rem',
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
+              padding: '5px 14px', borderRadius: 999,
+              background: 'rgba(0,87,168,0.12)', border: '1px solid rgba(0,118,192,0.3)',
+              color: '#38bdf8',
+            }}>
+              Service Tool v3.0
+            </span>
+            <span style={{
+              fontSize: '0.68rem', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 999,
+              background: 'var(--amber-dim)', border: '1px solid rgba(251,191,36,0.2)',
               color: 'var(--amber)',
-              opacity: 0.8,
-              padding: '4px 12px',
-              background: 'var(--amber-dim)',
-              border: '1px solid rgba(251,191,36,0.2)',
-              borderRadius: 999,
-              display: 'inline-block',
-            }}
-          >
-            ⚠️ Versione BETA — Non sostituisce il manuale tecnico ufficiale
-          </p>
+            }}>
+              BETA — Non sostituisce il manuale ufficiale
+            </span>
+          </div>
         </div>
 
-        {/* Big action cards */}
+        {/* Cards */}
         <div
           className="animate-fade-up"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: 20,
             width: '100%',
-            maxWidth: 680,
+            maxWidth: 740,
           }}
         >
-          {/* Errors */}
+          {/* Errors card — blue theme */}
           <button
             type="button"
             onClick={() => setExpandedSection('errors')}
+            className="home-card"
             style={{
-              background: 'var(--bg-card)',
+              background: 'linear-gradient(165deg, var(--bg-card) 0%, rgba(0,87,168,0.06) 100%)',
               border: '1px solid var(--border-default)',
-              borderRadius: 18,
-              padding: '36px 28px',
+              borderRadius: 20,
+              padding: '36px 28px 28px',
               cursor: 'pointer',
               textAlign: 'left',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.25s ease',
               position: 'relative',
               overflow: 'hidden',
             }}
             onMouseEnter={(e) => {
               const el = e.currentTarget;
-              el.style.borderColor = 'rgba(56,189,248,0.4)';
-              el.style.boxShadow = '0 8px 40px rgba(56,189,248,0.12)';
-              el.style.transform = 'translateY(-3px)';
+              el.style.borderColor = 'rgba(0,87,168,0.5)';
+              el.style.boxShadow = '0 16px 56px rgba(0,87,168,0.18), 0 0 0 1px rgba(0,87,168,0.15)';
+              el.style.transform = 'translateY(-6px)';
             }}
             onMouseLeave={(e) => {
               const el = e.currentTarget;
@@ -435,62 +471,57 @@ export default function Home() {
               el.style.transform = 'none';
             }}
           >
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 3,
-                background: 'linear-gradient(90deg, var(--accent), transparent)',
-                borderRadius: '18px 18px 0 0',
-              }}
-            />
-            <div style={{ color: 'var(--accent)', marginBottom: 16 }}>
-              <IcoBug size={44} />
+            {/* Top accent bar */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: 'linear-gradient(90deg, #0057a8 0%, #38bdf8 60%, transparent 100%)',
+            }} />
+            {/* Subtle glow */}
+            <div style={{
+              position: 'absolute', top: -40, right: -40, width: 120, height: 120,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(0,87,168,0.12) 0%, transparent 70%)',
+              pointerEvents: 'none',
+            }} />
+            <div style={{ fontSize: '1.6rem', marginBottom: 16 }}>&#9888;&#65039;</div>
+            <div style={{ fontWeight: 800, fontSize: '1.2rem', marginBottom: 10, color: 'var(--text-primary)' }}>
+              Codici Errore
             </div>
-            <div style={{ fontWeight: 800, fontSize: '1.25rem', marginBottom: 6 }}>Codici Errore</div>
-            <div style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Ricerca intelligente per codici errore con soluzioni, cause e ricambi consigliati.
+            <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 24 }}>
+              Ricerca per codice errore con cause, soluzioni e ricambi consigliati per ogni modello.
             </div>
-            <div
-              style={{
-                marginTop: 20,
-                fontSize: '0.75rem',
-                color: 'var(--accent)',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
-              Apri ricerca
-              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
+            <div style={{
+              fontSize: '0.75rem', color: '#38bdf8', fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+              padding: '8px 16px', borderRadius: 10,
+              background: 'rgba(0,87,168,0.12)', border: '1px solid rgba(0,87,168,0.2)',
+              display: 'inline-block',
+            }}>
+              Apri ricerca →
             </div>
           </button>
 
-          {/* Parts */}
+          {/* Parts card — red theme */}
           <button
             type="button"
             onClick={() => setExpandedSection('parts')}
+            className="home-card"
             style={{
-              background: 'var(--bg-card)',
+              background: 'linear-gradient(165deg, var(--bg-card) 0%, rgba(200,16,46,0.06) 100%)',
               border: '1px solid var(--border-default)',
-              borderRadius: 18,
-              padding: '36px 28px',
+              borderRadius: 20,
+              padding: '36px 28px 28px',
               cursor: 'pointer',
               textAlign: 'left',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.25s ease',
               position: 'relative',
               overflow: 'hidden',
             }}
             onMouseEnter={(e) => {
               const el = e.currentTarget;
-              el.style.borderColor = 'rgba(248,113,113,0.4)';
-              el.style.boxShadow = '0 8px 40px rgba(248,113,113,0.1)';
-              el.style.transform = 'translateY(-3px)';
+              el.style.borderColor = 'rgba(200,16,46,0.45)';
+              el.style.boxShadow = '0 16px 56px rgba(200,16,46,0.15), 0 0 0 1px rgba(200,16,46,0.12)';
+              el.style.transform = 'translateY(-6px)';
             }}
             onMouseLeave={(e) => {
               const el = e.currentTarget;
@@ -499,53 +530,64 @@ export default function Home() {
               el.style.transform = 'none';
             }}
           >
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 3,
-                background: 'linear-gradient(90deg, var(--red), transparent)',
-                borderRadius: '18px 18px 0 0',
-              }}
-            />
-            <div style={{ color: 'var(--red)', marginBottom: 16 }}>
-              <IcoWrench size={44} />
+            {/* Top accent bar */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: 'linear-gradient(90deg, #c8102e 0%, #ff4d6d 60%, transparent 100%)',
+            }} />
+            {/* Subtle glow */}
+            <div style={{
+              position: 'absolute', top: -40, right: -40, width: 120, height: 120,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(200,16,46,0.10) 0%, transparent 70%)',
+              pointerEvents: 'none',
+            }} />
+            <div style={{ fontSize: '1.6rem', marginBottom: 16 }}>&#128295;</div>
+            <div style={{ fontWeight: 800, fontSize: '1.2rem', marginBottom: 10, color: 'var(--text-primary)' }}>
+              Ricerca Parti
             </div>
-            <div style={{ fontWeight: 800, fontSize: '1.25rem', marginBottom: 6 }}>Ricerca Parti</div>
-            <div style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Catalogo ricambi per modello con sezioni, codici OEM e liste manutenzione.
+            <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 24 }}>
+              Catalogo ricambi con sezioni, codici OEM e liste di manutenzione programmata.
             </div>
-            <div
-              style={{
-                marginTop: 20,
-                fontSize: '0.75rem',
-                color: 'var(--red)',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
-              Apri catalogo
-              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
+            <div style={{
+              fontSize: '0.75rem', color: '#ff4d6d', fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+              padding: '8px 16px', borderRadius: 10,
+              background: 'rgba(200,16,46,0.12)', border: '1px solid rgba(200,16,46,0.2)',
+              display: 'inline-block',
+            }}>
+              Apri catalogo →
             </div>
           </button>
         </div>
 
+        {/* Stats row */}
+        <div className="animate-fade-up" style={{
+          display: 'flex', gap: 32, justifyContent: 'center', marginTop: 48,
+          flexWrap: 'wrap',
+        }}>
+          {[
+            { value: '15', label: 'Modelli supportati' },
+            { value: '800+', label: 'Codici errore' },
+            { value: '5000+', label: 'Parti catalogate' },
+          ].map((stat) => (
+            <div key={stat.label} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                {stat.value}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Footer */}
-        <div
-          style={{
-            marginTop: 60,
-            fontSize: '0.72rem',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-          }}
-        >
-          Developed by AISAC · KM Insight v3.0
+        <div style={{
+          marginTop: 48, fontSize: '0.7rem', color: 'var(--text-muted)',
+          textAlign: 'center', letterSpacing: '0.04em',
+        }}>
+          Developed by AISAC · KonicaMinolta Identity v3.0
         </div>
       </main>
     );
@@ -880,10 +922,8 @@ export default function Home() {
 
               {partSearchMode === 'smart' ? (
                 <PartSearchAutocomplete
-                  model=""
                   onSelect={(part) => { if (part) setPartResults([part]); }}
-                  onResults={setPartResults}
-                  placeholder="Cerca codice parte o descrizione (ricerca globale)…"
+                  onResults={(parts) => { setPartResults(parts); setPartFilterModel(''); setPartHasSearched(true); }}
                 />
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -948,7 +988,14 @@ export default function Home() {
             </div>
 
             {/* Results table */}
-            {partResults.length > 0 && (
+            {partResults.length > 0 && (() => {
+              // Compute available models from results for filter
+              const resultModels = [...new Set(partResults.map(p => p.model))].sort();
+              const filteredParts = partFilterModel
+                ? partResults.filter(p => p.model === partFilterModel)
+                : partResults;
+
+              return (
               <div className="surface" style={{ overflow: 'hidden' }}>
                 <div
                   style={{
@@ -957,14 +1004,45 @@ export default function Home() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    gap: 12,
+                    flexWrap: 'wrap',
                   }}
                 >
                   <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>
                     Risultati{' '}
                     <span className="chip chip-neutral" style={{ marginLeft: 6 }}>
-                      {partResults.length}
+                      {filteredParts.length}
+                      {partFilterModel && ` / ${partResults.length}`}
                     </span>
                   </span>
+
+                  {/* Model filter on results */}
+                  {resultModels.length > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Filtra modello:</span>
+                      <select
+                        value={partFilterModel}
+                        onChange={(e) => setPartFilterModel(e.target.value)}
+                        style={{
+                          background: 'var(--bg-elevated)',
+                          border: '1px solid var(--border-default)',
+                          borderRadius: 8,
+                          padding: '4px 10px',
+                          fontSize: '0.78rem',
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          appearance: 'auto',
+                        }}
+                      >
+                        <option value="">Tutti ({partResults.length})</option>
+                        {resultModels.map(m => (
+                          <option key={m} value={m}>
+                            {m} ({partResults.filter(p => p.model === m).length})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <div style={{ overflowX: 'auto', maxHeight: 560, overflowY: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
@@ -991,7 +1069,7 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody>
-                      {partResults.map((part, idx) => {
+                      {filteredParts.map((part, idx) => {
                         const uid = uniqueId(part);
                         const isFav = cart.some((c) => uniqueId(c) === uid);
                         return (
@@ -1048,6 +1126,24 @@ export default function Home() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+              );
+            })()}
+
+            {/* No results message */}
+            {partHasSearched && partResults.length === 0 && !partLoading && (
+              <div className="surface" style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={1.5} style={{ margin: '0 auto 12px' }}>
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                  <path d="M8 11h6" />
+                </svg>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500, marginBottom: 6 }}>
+                  Nessun risultato trovato
+                </p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                  Prova con termini diversi o con un codice parte differente
+                </p>
               </div>
             )}
 

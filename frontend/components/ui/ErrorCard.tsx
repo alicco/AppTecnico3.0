@@ -186,121 +186,6 @@ function renderLinkedText(
   return <>{parts}</>;
 }
 
-type MatchMeta = {
-  index: number;
-  length: number;
-  text: string;
-  kind: 'dipswitch' | 'part';
-  swNum?: number;
-  bitNum?: number;
-};
-
-function renderLinkedTextWithParts(
-  text: string | undefined,
-  onDipSwitchClick?: (sw: number, bit: number) => void,
-  onPartClick?: (query: string) => void,
-): React.ReactNode {
-  if (!text) return null;
-
-  const patterns: { regex: RegExp; kind: MatchMeta['kind'] }[] = [
-    { regex: /(?:DipSW|SW)\s*(\d+)-(\d+)/gi, kind: 'dipswitch' },
-    {
-      regex: /((?:Fusing|Transfer|Drum|Developer|Charge|Cleaning|DC\s*power\s*supply|Printer\s*control|Paper\s*lift\s*motor|Upper\s*limit\s*sensor|Fan\s*motor|Motor|Clutch|Solenoid|Photo\s*sensor|Photointerrupter|Temperature\s*sensor|Thermostat|Switch)\s*(?:Unit|Roller|Assembly|Board|\/\d+)?\s*(?:\([A-Z0-9]{2,6}\))?)/gi,
-      kind: 'part',
-    },
-    { regex: /\b([A-Z]{2,6}\d*|[A-Z]+\d{1,3})\b/g, kind: 'part' },
-    { regex: /\b([A-Z0-9]{8,12})\b/g, kind: 'part' },
-  ];
-
-  const allMatches: MatchMeta[] = [];
-
-  for (const { regex, kind } of patterns) {
-    for (const m of text.matchAll(regex)) {
-      const idx = m.index!;
-      const full = m[0];
-      const overlaps = allMatches.some(
-        (ex) =>
-          (idx >= ex.index && idx < ex.index + ex.length) ||
-          (idx + full.length > ex.index && idx + full.length <= ex.index + ex.length),
-      );
-      if (!overlaps) {
-        if (kind === 'dipswitch') {
-          allMatches.push({
-            index: idx,
-            length: full.length,
-            text: full,
-            kind,
-            swNum: parseInt(m[1]),
-            bitNum: parseInt(m[2]),
-          });
-        } else {
-          allMatches.push({ index: idx, length: full.length, text: full, kind });
-        }
-      }
-    }
-  }
-
-  allMatches.sort((a, b) => a.index - b.index);
-
-  if (!allMatches.length) return <span style={{ whiteSpace: 'pre-wrap' }}>{text}</span>;
-
-  const elements: React.ReactNode[] = [];
-  let cursor = 0;
-  for (const m of allMatches) {
-    if (m.index > cursor) {
-      elements.push(
-        <span key={`t-${m.index}`} style={{ whiteSpace: 'pre-wrap' }}>
-          {text.slice(cursor, m.index)}
-        </span>,
-      );
-    }
-    if (m.kind === 'dipswitch') {
-      elements.push(
-        <button
-          key={`d-${m.index}`}
-          type="button"
-          className="chip chip-blue"
-          style={{ verticalAlign: 'middle', cursor: 'pointer' }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDipSwitchClick?.(m.swNum!, m.bitNum!);
-          }}
-        >
-          {IcoSettings}
-          {m.text}
-        </button>,
-      );
-    } else {
-      elements.push(
-        <button
-          key={`p-${m.index}`}
-          type="button"
-          className="chip chip-green"
-          style={{ verticalAlign: 'middle', cursor: 'pointer' }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onPartClick?.(m.text);
-          }}
-        >
-          <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-          </svg>
-          {m.text}
-        </button>,
-      );
-    }
-    cursor = m.index + m.length;
-  }
-  if (cursor < text.length) {
-    elements.push(
-      <span key="t-end" style={{ whiteSpace: 'pre-wrap' }}>
-        {text.slice(cursor)}
-      </span>,
-    );
-  }
-  return <>{elements}</>;
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
@@ -519,32 +404,67 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
             <Accordion label="Recommended Spare Parts" icon={IcoBuild} iconColor="var(--text-secondary)" defaultOpen>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-                {error.estimated_abnormal_parts && (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: '0.67rem',
-                        color: 'var(--text-muted)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.1em',
-                        marginBottom: 6,
-                      }}
-                    >
-                      Estimated parts
+                {error.estimated_abnormal_parts && (() => {
+                  const partsList = error.estimated_abnormal_parts!
+                    .split(/\s*[•]\s*|\s*\|\s*/)
+                    .map((p) => p.trim())
+                    .filter((p) => p.length > 0);
+                  return (
+                    <div>
+                      <div
+                        style={{
+                          fontSize: '0.67rem',
+                          color: 'var(--text-muted)',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.1em',
+                          marginBottom: 8,
+                        }}
+                      >
+                        Parti stimate difettose — clicca per cercare
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {partsList.map((part, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handlePartClick(part)}
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: 999,
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              background: 'rgba(34,197,94,0.12)',
+                              border: '1px solid rgba(34,197,94,0.4)',
+                              color: '#4ade80',
+                              cursor: 'pointer',
+                              transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+                              lineHeight: 1.5,
+                              textAlign: 'left',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5,
+                            }}
+                            onMouseEnter={(e) => {
+                              const el = e.currentTarget as HTMLButtonElement;
+                              el.style.background = 'rgba(34,197,94,0.25)';
+                              el.style.borderColor = 'rgba(34,197,94,0.7)';
+                              el.style.color = '#86efac';
+                            }}
+                            onMouseLeave={(e) => {
+                              const el = e.currentTarget as HTMLButtonElement;
+                              el.style.background = 'rgba(34,197,94,0.12)';
+                              el.style.borderColor = 'rgba(34,197,94,0.4)';
+                              el.style.color = '#4ade80';
+                            }}
+                          >
+                            <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>+</span>
+                            {part}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div
-                      style={{
-                        padding: '10px 12px',
-                        background: 'var(--bg-elevated)',
-                        borderRadius: 8,
-                        fontSize: '0.85rem',
-                        lineHeight: 1.7,
-                      }}
-                    >
-                      {renderLinkedTextWithParts(error.estimated_abnormal_parts, onDipSwitchClick, handlePartClick)}
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {error.parts && error.parts.length > 0 && (
                   <div

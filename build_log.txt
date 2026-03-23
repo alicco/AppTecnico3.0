@@ -1,0 +1,89 @@
+2026-03-05T01:16:30.877Z [INFO]: # Build environment configured with Standard build compute type: 8GiB Memory, 4vCPUs, 128GB Disk Space
+2026-03-05T01:16:31.106Z [INFO]: # Cloning repository: https://git-codecommit.eu-central-1.amazonaws.com/v1/repos/app-tecnico-frontend
+2026-03-05T01:17:06.059Z [INFO]: 
+2026-03-05T01:17:06.154Z [INFO]: Cloning into 'app-tecnico-frontend'...
+                                 remote: remote: Counting objects: 0        remote: Counting objects: 554        remote: Counting objects: 554        remote: Counting objects: 554, done.
+                                 Receiving objects:   0% (1/554)Receiving objects:   1% (6/554)Receiving objects:   2% (12/554)Receiving objects:   3% (17/554)Receiving objects:   4% (23/554)Receiving objects:   5% (28/554)Receiving objects:   6% (34/554)Receiving objects:   7% (39/554)Receiving objects:   8% (45/554)Receiving objects:   9% (50/554)Receiving objects:  10% (56/554)Receiving objects:  11% (61/554)Receiving objects:  12% (67/554)Receiving objects:  13% (73/554)Receiving objects:  14% (78/554)Receiving objects:  15% (84/554)Receiving objects:  16% (89/554)Receiving objects:  17% (95/554)Receiving objects:  18% (100/554)Receiving objects:  19% (106/554)Receiving objects:  20% (111/554)Receiving objects:  21% (117/554)Receiving objects:  22% (122/554)Receiving objects:  23% (128/554)Receiving objects:  24% (133/554)Receiving objects:  25% (139/554)Receiving objects:  26% (145/554)Receiving objects:  27% (150/554)Receiving objects:  28% (156/554)Receiving objects:  29% (161/554)Receiving objects:  30% (167/554)Receiving objects:  31% (172/554)Receiving objects:  32% (178/554)Receiving objects:  33% (183/554)Receiving objects:  34% (189/554)Receiving objects:  35% (194/554)Receiving objects:  36% (200/554)Receiving objects:  37% (205/554)Receiving objects:  38% (211/554)Receiving objects:  39% (217/554)Receiving objects:  40% (222/554)Receiving objects:  41% (228/554)Receiving objects:  42% (233/554)Receiving objects:  43% (239/554)Receiving objects:  44% (244/554)Receiving objects:  45% (250/554)Receiving objects:  46% (255/554)Receiving objects:  47% (261/554)Receiving objects:  48% (266/554)Receiving objects:  49% (272/554)Receiving objects:  50% (277/554)Receiving objects:  51% (283/554)Receiving objects:  52% (289/554)Receiving objects:  53% (294/554)Receiving objects:  54% (300/554)Receiving objects:  55% (305/554)Receiving objects:  56% (311/554)Receiving objects:  57% (316/554)Receiving objects:  58% (322/554)Receiving objects:  59% (327/554)Receiving objects:  60% (333/554)Receiving objects:  61% (338/554)Receiving objects:  62% (344/554)Receiving objects:  63% (350/554)Receiving objects:  64% (355/554)Receiving objects:  65% (361/554)Receiving objects:  66% (366/554)Receiving objects:  67% (372/554)Receiving objects:  68% (377/554)Receiving objects:  69% (383/554)Receiving objects:  70% (388/554)Receiving objects:  71% (394/554)Receiving objects:  72% (399/554)Receiving objects:  73% (405/554)Receiving objects:  74% (410/554)Receiving objects:  75% (416/554)Receiving objects:  76% (422/554)Receiving objects:  77% (427/554)Receiving objects:  78% (433/554)Receiving objects:  79% (438/554)Receiving objects:  80% (444/554)Receiving objects:  81% (449/554)Receiving objects:  82% (455/554)Receiving objects:  83% (460/554)Receiving objects:  84% (466/554)Receiving objects:  85% (471/554)Receiving objects:  86% (477/554)Receiving objects:  87% (482/554)Receiving objects:  88% (488/554)Receiving objects:  89% (494/554)Receiving objects:  90% (499/554)Receiving objects:  91% (505/554)Receiving objects:  92% (510/554)Receiving objects:  92% (510/554), 20.97 MiB | 14.78 MiB/sReceiving objects:  93% (516/554), 20.97 MiB | 14.78 MiB/sReceiving objects:  94% (521/554), 20.97 MiB | 14.78 MiB/sReceiving objects:  95% (527/554), 20.97 MiB | 14.78 MiB/sReceiving objects:  96% (532/554), 20.97 MiB | 14.78 MiB/sReceiving objects:  96% (536/554), 37.40 MiB | 14.12 MiB/sReceiving objects:  96% (536/554), 48.72 MiB | 14.85 MiB/sReceiving objects:  96% (536/554), 70.99 MiB | 16.03 MiB/sReceiving objects:  96% (536/554), 93.60 MiB | 16.87 MiB/sReceiving objects:  96% (537/554), 106.09 MiB | 16.17 MiB/sReceiving objects:  96% (537/554), 129.92 MiB | 19.38 MiB/sReceiving objects:  96% (537/554), 153.63 MiB | 20.05 MiB/sReceiving objects:  96% (537/554), 165.57 MiB | 19.67 MiB/sReceiving objects:  97% (538/554), 165.57 MiB | 19.67 MiB/sReceiving objects:  98% (543/554), 165.57 MiB | 19.67 MiB/sReceiving objects:  99% (549/554), 165.57 MiB | 19.67 MiB/sReceiving objects:  99% (553/554), 194.40 MiB | 20.87 MiB/sReceiving objects:  99% (553/554), 212.23 MiB | 20.51 MiB/sReceiving objects:  99% (553/554), 232.78 MiB | 17.84 MiB/sReceiving objects: 100% (554/554), 232.78 MiB | 17.84 MiB/sReceiving objects: 100% (554/554), 237.63 MiB | 18.01 MiB/s, done.
+                                 Resolving deltas:   0% (0/261)Resolving deltas:   1% (3/261)Resolving deltas:   2% (6/261)Resolving deltas:   3% (8/261)Resolving deltas:   4% (11/261)Resolving deltas:   5% (14/261)Resolving deltas:   6% (16/261)Resolving deltas:   7% (19/261)Resolving deltas:   8% (21/261)Resolving deltas:   9% (24/261)Resolving deltas:  10% (27/261)Resolving deltas:  11% (29/261)Resolving deltas:  12% (32/261)Resolving deltas:  13% (34/261)Resolving deltas:  14% (37/261)Resolving deltas:  15% (40/261)Resolving deltas:  16% (42/261)Resolving deltas:  17% (45/261)Resolving deltas:  18% (47/261)Resolving deltas:  19% (50/261)Resolving deltas:  20% (53/261)Resolving deltas:  21% (55/261)Resolving deltas:  22% (58/261)Resolving deltas:  23% (61/261)Resolving deltas:  24% (63/261)Resolving deltas:  25% (66/261)Resolving deltas:  26% (68/261)Resolving deltas:  27% (71/261)Resolving deltas:  28% (74/261)Resolving deltas:  29% (76/261)Resolving deltas:  30% (79/261)Resolving deltas:  31% (81/261)Resolving deltas:  32% (84/261)Resolving deltas:  33% (87/261)Resolving deltas:  34% (89/261)Resolving deltas:  35% (92/261)Resolving deltas:  36% (94/261)Resolving deltas:  37% (97/261)Resolving deltas:  38% (100/261)Resolving deltas:  39% (102/261)Resolving deltas:  40% (105/261)Resolving deltas:  41% (108/261)Resolving deltas:  42% (110/261)Resolving deltas:  43% (113/261)Resolving deltas:  44% (115/261)Resolving deltas:  45% (118/261)Resolving deltas:  46% (121/261)Resolving deltas:  47% (123/261)Resolving deltas:  48% (126/261)Resolving deltas:  49% (128/261)Resolving deltas:  50% (131/261)Resolving deltas:  51% (134/261)Resolving deltas:  52% (136/261)Resolving deltas:  53% (139/261)Resolving deltas:  54% (141/261)Resolving deltas:  55% (144/261)Resolving deltas:  56% (147/261)Resolving deltas:  57% (149/261)Resolving deltas:  58% (152/261)Resolving deltas:  59% (154/261)Resolving deltas:  60% (157/261)Resolving deltas:  61% (160/261)Resolving deltas:  62% (162/261)Resolving deltas:  63% (165/261)Resolving deltas:  64% (168/261)Resolving deltas:  65% (170/261)Resolving deltas:  66% (173/261)Resolving deltas:  67% (175/261)Resolving deltas:  68% (178/261)Resolving deltas:  69% (181/261)Resolving deltas:  70% (183/261)Resolving deltas:  71% (186/261)Resolving deltas:  72% (188/261)Resolving deltas:  73% (191/261)Resolving deltas:  74% (194/261)Resolving deltas:  75% (196/261)Resolving deltas:  76% (199/261)Resolving deltas:  77% (201/261)Resolving deltas:  78% (204/261)Resolving deltas:  79% (207/261)Resolving deltas:  80% (209/261)Resolving deltas:  81% (212/261)Resolving deltas:  82% (215/261)Resolving deltas:  83% (217/261)Resolving deltas:  84% (220/261)Resolving deltas:  85% (222/261)Resolving deltas:  86% (225/261)Resolving deltas:  87% (228/261)Resolving deltas:  88% (230/261)Resolving deltas:  89% (233/261)Resolving deltas:  90% (235/261)Resolving deltas:  91% (238/261)Resolving deltas:  92% (241/261)Resolving deltas:  93% (243/261)Resolving deltas:  94% (246/261)Resolving deltas:  95% (248/261)Resolving deltas:  96% (251/261)Resolving deltas:  97% (254/261)Resolving deltas:  98% (256/261)Resolving deltas:  99% (259/261)Resolving deltas: 100% (261/261)Resolving deltas: 100% (261/261), done.
+2026-03-05T01:17:06.154Z [INFO]: # Switching to commit: f2ab25d91616425842801cc9359fa4c4c34c189f
+2026-03-05T01:17:06.184Z [INFO]: Note: switching to 'f2ab25d91616425842801cc9359fa4c4c34c189f'.
+                                 You are in 'detached HEAD' state. You can look around, make experimental
+                                 changes and commit them, and you can discard any commits you make in this
+                                 state without impacting any branches by switching back to a branch.
+                                 If you want to create a new branch to retain commits you create, you may
+                                 do so (now or later) by using -c with the switch command. Example:
+                                 git switch -c <new-branch-name>
+                                 Or undo this operation with:
+                                 git switch -
+                                 Turn off this advice by setting config variable advice.detachedHead to false
+                                 HEAD is now at f2ab25d Sync frontend with Claude worktree ui updates
+2026-03-05T01:17:06.281Z [INFO]: Successfully cleaned up Git credentials
+2026-03-05T01:17:06.282Z [INFO]: # Checking for Git submodules at: /codebuild/output/src1550767481/src/app-tecnico-frontend/.gitmodules
+2026-03-05T01:17:06.287Z [INFO]: # Retrieving environment cache...
+2026-03-05T01:17:06.329Z [WARNING]: ! Unable to write cache: {"code":"ERR_BAD_REQUEST","message":"Request failed with status code 404"})}
+2026-03-05T01:17:06.329Z [INFO]: ---- Setting Up SSM Secrets ----
+2026-03-05T01:17:06.329Z [INFO]: SSM params {"Path":"/amplify/d38ekrzn8z8g0e/main/","WithDecryption":true}
+2026-03-05T01:17:06.374Z [WARNING]: !Failed to set up process.env.secrets
+2026-03-05T01:17:06.789Z [INFO]: # No package override configuration found.
+2026-03-05T01:17:06.793Z [INFO]: # Retrieving cache...
+2026-03-05T01:17:14.613Z [INFO]: # Extracting cache...
+2026-03-05T01:17:33.983Z [INFO]: # Extraction completed
+2026-03-05T01:17:34.137Z [INFO]: # Retrieved cache
+2026-03-05T01:17:38.979Z [INFO]: ## Starting Backend Build
+                                 ## Checking for associated backend environment...
+                                 ## No backend environment association found, continuing...
+                                 ## Completed Backend Build
+2026-03-05T01:17:38.985Z [INFO]: {"backendDuration": 0}
+                                 ## Starting Frontend Build
+                                 # Starting phase: preBuild
+                                 # Executing command: cd frontend
+2026-03-05T01:17:39.022Z [INFO]: # Executing command: npm ci
+2026-03-05T01:18:13.543Z [INFO]: added 444 packages, and audited 445 packages in 30s
+2026-03-05T01:18:13.549Z [INFO]: 157 packages are looking for funding
+                                 run `npm fund` for details
+2026-03-05T01:18:13.652Z [INFO]: 4 vulnerabilities (1 moderate, 3 high)
+                                 To address issues that do not require attention, run:
+                                 npm audit fix
+                                 To address all issues possible, run:
+                                 npm audit fix --force
+                                 Some issues need review, and may require choosing
+                                 a different dependency.
+                                 Run `npm audit` for details.
+2026-03-05T01:18:13.684Z [INFO]: # Completed phase: preBuild
+                                 # Starting phase: build
+                                 # Executing command: npm run build
+2026-03-05T01:18:13.801Z [INFO]: > frontend@0.1.0 build
+                                 > next build
+2026-03-05T01:18:14.768Z [INFO]: ▲ Next.js 16.1.1 (Turbopack)
+2026-03-05T01:18:14.769Z [INFO]: - Experiments (use with caution):
+                                 · serverActions
+2026-03-05T01:18:14.859Z [INFO]: Creating an optimized production build ...
+2026-03-05T01:18:21.031Z [INFO]: ✓ Compiled successfully in 5.6s
+2026-03-05T01:18:21.037Z [INFO]: Running TypeScript ...
+2026-03-05T01:18:26.624Z [INFO]: Collecting page data using 3 workers ...
+2026-03-05T01:18:27.052Z [INFO]: Generating static pages using 3 workers (0/6) ...
+2026-03-05T01:18:27.318Z [INFO]: Generating static pages using 3 workers (1/6)
+2026-03-05T01:18:27.321Z [INFO]: Generating static pages using 3 workers (2/6)
+2026-03-05T01:18:27.323Z [INFO]: Generating static pages using 3 workers (4/6)
+2026-03-05T01:18:27.323Z [INFO]: ✓ Generating static pages using 3 workers (6/6) in 271.1ms
+2026-03-05T01:18:27.330Z [INFO]: Finalizing page optimization ...
+2026-03-05T01:18:27.338Z [INFO]: 
+2026-03-05T01:18:27.340Z [INFO]: Route (app)
+                                 ┌ ○ /
+                                 ├ ○ /_not-found
+                                 ├ ○ /admin/import
+                                 └ ○ /parts
+2026-03-05T01:18:27.340Z [INFO]: ○  (Static)  prerendered as static content
+2026-03-05T01:18:27.529Z [INFO]: # Completed phase: build
+                                 ## Completed Frontend Build
+2026-03-05T01:18:27.540Z [INFO]: ## Build completed successfully
+2026-03-05T01:18:27.541Z [INFO]: # Starting caching...
+2026-03-05T01:18:27.551Z [INFO]: # Creating cache artifact...
+2026-03-05T01:18:43.231Z [INFO]: # Created cache artifact
+2026-03-05T01:18:43.320Z [INFO]: # Uploading cache artifact...
+2026-03-05T01:18:50.240Z [INFO]: # Uploaded cache artifact
+2026-03-05T01:18:50.342Z [INFO]: # Caching completed
+2026-03-05T01:18:50.346Z [ERROR]: !!! CustomerError: Failed to find the deploy-manifest.json file in the build output. Please verify that it exists within the "baseDirectory" specified in your buildSpec. If it's not there, we will also check the .amplify-hosting directory as a fallback. When using a framework adapter for hosting on Amplify, double-check that the adapter settings are correct.
+2026-03-05T01:18:50.347Z [INFO]: # Starting environment caching...
+2026-03-05T01:18:50.347Z [INFO]: # Environment caching completed
+

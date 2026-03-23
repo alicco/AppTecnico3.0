@@ -1,0 +1,9 @@
+
+--- Codici_C14000_C12000.xlsx ---
+Columns: ['Code', 'Classification', 'Cause', 'Measures to take when an alert occurs', 'Estimated abnormal parts', 'Correction', 'Note', 'Solution', 'Faulty part isolation DIPSW', 'Control during the detachment']
+
+--- Codici_C6100_ok.xlsx ---
+Columns: ['Code', 'Classification', 'Cause', 'Measures to take when an alert occurs', 'Estimated abnormal parts', 'Correction', 'Note', 'Solution', 'Faulty part isolation DIPSW', 'Control during the detachment']
+
+--- Codici_C7100_C7090.csv ---
+Columns: ['Code', 'Classification', 'Cause', 'Measures to take when an alert occurs', 'Estimated abnormal parts', 'Correction', 'Note', 'Solution', 'Faulty part isolation DIPSW', 'Control during the detachment']

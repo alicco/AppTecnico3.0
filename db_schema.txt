@@ -1,0 +1,14 @@
+id
+model
+section_name
+page_number
+ref_number
+part_code
+name
+destination
+class
+quantity
+ship_unit
+pmn_no
+created_at
+motor_id

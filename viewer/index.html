@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C4080 Parts Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>C4080 Parts Catalog Viewer</h1>
+        
+        <div class="controls">
+            <label for="page-select">Select Page:</label>
+            <select id="page-select">
+                <option value="">-- Choose --</option>
+            </select>
+            <button id="prev-btn">Previous</button>
+            <button id="next-btn">Next</button>
+        </div>
+
+        <div id="viewer-container">
+            <div id="image-wrapper">
+                <img id="main-image" src="" alt="Parts Diagram">
+                <div id="overlay"></div>
+            </div>
+        </div>
+
+        <div id="status">Loading metadata...</div>
+    </div>
+    <script src="viewer.js"></script>
+</body>
+</html>

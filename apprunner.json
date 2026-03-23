@@ -1,0 +1,22 @@
+{
+    "ServiceName": "apptecnico-backend",
+    "SourceConfiguration": {
+        "ImageRepository": {
+            "ImageIdentifier": "199650096013.dkr.ecr.eu-central-1.amazonaws.com/apptecnico-backend:latest",
+            "ImageConfiguration": {
+                "Port": "8000",
+                "RuntimeEnvironmentVariables": {
+                    "DATABASE_URL": "postgresql://postgres.sitxqsefkuaovgqunawa:4275142Ss.!@aws-1-eu-west-1.pooler.supabase.com:5432/postgres"
+                }
+            },
+            "ImageRepositoryType": "ECR"
+        },
+        "AuthenticationConfiguration": {
+            "AccessRoleArn": "arn:aws:iam::199650096013:role/AppRunnerECRAccessRole"
+        }
+    },
+    "InstanceConfiguration": {
+        "Cpu": "1024",
+        "Memory": "2048"
+    }
+}

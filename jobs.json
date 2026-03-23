@@ -1,0 +1,32 @@
+{
+    "jobSummaries": [
+        {
+            "jobArn": "arn:aws:amplify:eu-central-1:199650096013:apps/d38ekrzn8z8g0e/branches/main/jobs/0000000003",
+            "jobId": "3",
+            "commitId": "32dab84eb109d2094952241c21e81eecfba75387",
+            "commitMessage": "Please visit AWS CodeCommit Console for commit message.",
+            "commitTime": "2026-03-05T02:32:33.926000+01:00",
+            "startTime": "2026-03-05T02:32:34.754000+01:00",
+            "status": "RUNNING"
+        },
+        {
+            "jobArn": "arn:aws:amplify:eu-central-1:199650096013:apps/d38ekrzn8z8g0e/branches/main/jobs/0000000002",
+            "jobId": "2",
+            "commitId": "f2ab25d91616425842801cc9359fa4c4c34c189f",
+            "commitMessage": "Please visit AWS CodeCommit Console for commit message.",
+            "commitTime": "2026-03-05T02:16:11.013000+01:00",
+            "startTime": "2026-03-05T02:16:11.553000+01:00",
+            "status": "FAILED",
+            "endTime": "2026-03-05T02:19:09.276000+01:00"
+        },
+        {
+            "jobArn": "arn:aws:amplify:eu-central-1:199650096013:apps/d38ekrzn8z8g0e/branches/main/jobs/0000000001",
+            "jobId": "1",
+            "commitId": "HEAD",
+            "commitTime": "2026-03-05T01:59:20.945000+01:00",
+            "startTime": "2026-03-05T01:59:21.387000+01:00",
+            "status": "FAILED",
+            "endTime": "2026-03-05T02:01:42.989000+01:00"
+        }
+    ]
+}

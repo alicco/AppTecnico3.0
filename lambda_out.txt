@@ -1,0 +1,6 @@
+
+aws: [ERROR]: An error occurred (InvalidParameterValueException) when calling the CreateFunction operation: The image manifest, config or layer media type for the source image 199650096013.dkr.ecr.eu-central-1.amazonaws.com/apptecnico-backend:lambda is not supported.
+
+Additional error details:
+Type: User
+message: The image manifest, config or layer media type for the source image 199650096013.dkr.ecr.eu-central-1.amazonaws.com/apptecnico-backend:lambda is not supported.

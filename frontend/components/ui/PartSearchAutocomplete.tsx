@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
+import { searchPartsDirectly } from '@/app/actions/search';
 
 export interface Part {
   model: string;
@@ -13,48 +14,37 @@ export interface Part {
 }
 
 interface PartSearchAutocompleteProps {
-  model: string;
   onSelect: (part: Part | null) => void;
   onResults?: (parts: Part[]) => void;
   placeholder?: string;
-  onQueryChange?: (query: string) => void;
-  initialValue?: string;
 }
 
 export function PartSearchAutocomplete({
-  model,
   onSelect,
   onResults,
-  placeholder = 'Search Part Code or Name…',
-  initialValue = '',
+  placeholder = 'Cerca codice parte o descrizione…',
 }: PartSearchAutocompleteProps) {
-  const [inputValue, setInputValue] = useState(initialValue);
+  const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
-
   const doSearch = useCallback(async (query: string) => {
-    if (query.length < 2) {
+    if (query.trim().length < 2) {
       onResults?.([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      let url = `${API_BASE}/api/parts?q=${encodeURIComponent(query)}&limit=50`;
-      if (model) url += `&model=${model}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const parts = Array.isArray(data) ? data : [];
-      onResults?.(parts);
+      const parts = await searchPartsDirectly(query);
+      onResults?.(parts as Part[]);
     } catch {
       onResults?.([]);
     } finally {
       setLoading(false);
     }
-  }, [API_BASE, model, onResults]);
+  }, [onResults]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -117,7 +107,11 @@ export function PartSearchAutocomplete({
         <input
           type="text"
           className="input-base"
-          style={{ paddingLeft: 44, paddingRight: 40, fontSize: '1rem' }}
+          style={{
+            paddingLeft: 44,
+            paddingRight: 40,
+            fontSize: '1rem',
+          }}
           placeholder={placeholder}
           value={inputValue}
           onChange={handleChange}
@@ -175,7 +169,7 @@ export function PartSearchAutocomplete({
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
-            Search
+            Cerca
           </>
         )}
       </button>

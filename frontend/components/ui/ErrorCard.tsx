@@ -402,55 +402,39 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                     .filter((p) => p.length > 0);
                   return (
                     <div>
-                      <div
-                        style={{
-                          fontSize: '0.67rem',
-                          color: 'var(--text-muted)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.1em',
-                          marginBottom: 8,
-                        }}
-                      >
-                        Parti stimate difettose — clicca per cercare
+                      <div style={{ fontSize: '0.67rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                        Parti stimate difettose
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {partsList.map((part, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => handlePartClick(part)}
-                            style={{
-                              padding: '4px 12px',
-                              borderRadius: 999,
-                              fontSize: '0.78rem',
-                              fontWeight: 600,
-                              background: 'rgba(34,197,94,0.12)',
-                              border: '1px solid rgba(34,197,94,0.4)',
-                              color: '#4ade80',
-                              cursor: 'pointer',
-                              transition: 'background 0.15s, border-color 0.15s, color 0.15s',
-                              lineHeight: 1.5,
-                              textAlign: 'left',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5,
-                            }}
-                            onMouseEnter={(e) => {
-                              const el = e.currentTarget as HTMLButtonElement;
-                              el.style.background = 'rgba(34,197,94,0.25)';
-                              el.style.borderColor = 'rgba(34,197,94,0.7)';
-                              el.style.color = '#86efac';
-                            }}
-                            onMouseLeave={(e) => {
-                              const el = e.currentTarget as HTMLButtonElement;
-                              el.style.background = 'rgba(34,197,94,0.12)';
-                              el.style.borderColor = 'rgba(34,197,94,0.4)';
-                              el.style.color = '#4ade80';
-                            }}
-                          >
-                            <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>+</span>
-                            {part}
-                          </button>
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            {/* Part name as plain text with inline PS chips */}
+                            <span style={{ fontSize: '0.83rem', lineHeight: 1.5 }}>
+                              {renderLinkedText(part, onDipSwitchClick, false, model)}
+                            </span>
+                            {/* Search button kept separate */}
+                            <button
+                              type="button"
+                              onClick={() => handlePartClick(part)}
+                              style={{
+                                padding: '2px 10px',
+                                borderRadius: 999,
+                                fontSize: '0.68rem',
+                                fontWeight: 600,
+                                background: 'rgba(34,197,94,0.1)',
+                                border: '1px solid rgba(34,197,94,0.35)',
+                                color: '#4ade80',
+                                cursor: 'pointer',
+                                transition: 'background 0.15s',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.22)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(34,197,94,0.1)'; }}
+                            >
+                              cerca ricambio
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import type { Sensor } from '@/app/actions/search';
 
-// Model alias map (same as server side)
+// Model alias map
 const ALIAS_MAP: Record<string, string> = {
   C7090: 'C7100', C14000: 'C12000',
   C4065: 'C4080', C4070: 'C4080',
@@ -25,18 +26,25 @@ async function fetchSensor(model: string, partId: string): Promise<Sensor | null
 // ── Regex: matches PS1, PS12, PS-12, ps1 (case-insensitive, word boundary)
 const PS_REGEX = /\b(PS-?\d{1,3})\b/gi;
 
+// ── Sensor detail modal (portaled to document.body) ─────────────────────────
+
 interface SensorDetailProps {
   sensor: Sensor;
   onClose: () => void;
 }
 
 function SensorDetail({ sensor, onClose }: SensorDetailProps) {
-  return (
+  const modal = (
     <div
-      className="modal-backdrop"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.7)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '16px',
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="modal-panel" style={{ width: '100%', maxWidth: 480, margin: '0 16px' }}>
+      <div className="modal-panel" style={{ width: '100%', maxWidth: 480 }}>
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -109,9 +117,12 @@ function SensorDetail({ sensor, onClose }: SensorDetailProps) {
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modal, document.body);
 }
 
-// ── Single clickable PS chip (exported for use in renderLinkedText) ─────────
+// ── Single clickable PS chip ─────────────────────────────────────────────────
 
 export interface PsChipProps {
   label: string;   // e.g. "PS1"
@@ -124,7 +135,7 @@ export function PsChip({ label, model }: PsChipProps) {
 
   const handleClick = async () => {
     if (sensor === 'loading') {
-      const normalized = label.replace('-', '').toUpperCase(); // PS-1 → PS1
+      const normalized = label.replace(/-/g, '').toUpperCase(); // PS-1 → PS1
       const result = await fetchSensor(model, normalized);
       setSensor(result ?? 'not_found');
       if (result) setOpen(true);
@@ -140,27 +151,23 @@ export function PsChip({ label, model }: PsChipProps) {
       <button
         type="button"
         onClick={handleClick}
-        title={found ? `${(sensor as Sensor).description} — pag. ${(sensor as Sensor).page}` : undefined}
+        title={found ? `${(sensor as Sensor).description} — pag. ${(sensor as Sensor).page}` : label}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 4,
           padding: '2px 9px',
           borderRadius: 999,
           fontSize: '0.78rem',
           fontWeight: 700,
           fontFamily: 'var(--font-mono, monospace)',
-          background: sensor === 'not_found'
-            ? 'rgba(100,100,100,0.1)'
-            : 'rgba(56,189,248,0.12)',
-          border: sensor === 'not_found'
-            ? '1px solid rgba(100,100,100,0.2)'
-            : '1px solid rgba(56,189,248,0.35)',
+          background: sensor === 'not_found' ? 'rgba(100,100,100,0.1)' : 'rgba(56,189,248,0.12)',
+          border: sensor === 'not_found' ? '1px solid rgba(100,100,100,0.2)' : '1px solid rgba(56,189,248,0.35)',
           color: sensor === 'not_found' ? 'var(--text-muted)' : 'var(--accent)',
           cursor: sensor === 'not_found' ? 'default' : 'pointer',
           transition: 'background 0.15s, border-color 0.15s',
           lineHeight: 1.5,
           whiteSpace: 'nowrap',
+          verticalAlign: 'middle',
         }}
         onMouseEnter={(e) => {
           if (sensor !== 'not_found') {
@@ -184,29 +191,20 @@ export function PsChip({ label, model }: PsChipProps) {
   );
 }
 
-// ── Main export: renders text with PS references replaced by chips ───────────
+// ── Renders text splitting PS refs into chips, rest stays plain ──────────────
 
-interface SensorTextProps {
-  text: string;
-  model: string;
-  style?: React.CSSProperties;
-}
-
-export function SensorText({ text, model, style }: SensorTextProps) {
+export function SensorText({ text, model }: { text: string; model: string }) {
   if (!text) return null;
-
-  // Split on PS references, keeping the matches
-  const parts = text.split(PS_REGEX);
-
+  const regex = /\b(PS-?\d{1,3})\b/gi;
+  const parts = text.split(regex);
   return (
-    <span style={{ lineHeight: 1.6, ...style }}>
+    <>
       {parts.map((part, i) => {
-        if (PS_REGEX.test(part)) {
-          PS_REGEX.lastIndex = 0; // reset stateful regex
+        if (/^PS-?\d{1,3}$/i.test(part)) {
           return <PsChip key={i} label={part} model={model} />;
         }
         return <span key={i}>{part}</span>;
       })}
-    </span>
+    </>
   );
 }

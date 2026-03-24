@@ -1,7 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { getSensor, type Sensor } from '@/app/actions/search';
+import { supabase } from '@/lib/supabase';
+import type { Sensor } from '@/app/actions/search';
+
+// Model alias map (same as server side)
+const ALIAS_MAP: Record<string, string> = {
+  C7090: 'C7100', C14000: 'C12000',
+  C4065: 'C4080', C4070: 'C4080',
+};
+
+async function fetchSensor(model: string, partId: string): Promise<Sensor | null> {
+  const lookupModel = ALIAS_MAP[model] ?? model;
+  const { data, error } = await supabase
+    .from('sensors')
+    .select('id, model, part_id, part_code, description, section, key, page')
+    .eq('model', lookupModel)
+    .eq('part_id', partId.toUpperCase())
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as Sensor;
+}
 
 // ── Regex: matches PS1, PS12, PS-12, ps1 (case-insensitive, word boundary)
 const PS_REGEX = /\b(PS-?\d{1,3})\b/gi;
@@ -106,7 +125,7 @@ export function PsChip({ label, model }: PsChipProps) {
   const handleClick = async () => {
     if (sensor === 'loading') {
       const normalized = label.replace('-', '').toUpperCase(); // PS-1 → PS1
-      const result = await getSensor(model, normalized);
+      const result = await fetchSensor(model, normalized);
       setSensor(result ?? 'not_found');
       if (result) setOpen(true);
     } else if (sensor && sensor !== 'not_found') {

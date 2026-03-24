@@ -239,14 +239,14 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                     {m[1]}
                   </span>
                   <span style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
-                    {renderLinkedText(m[2], onDipSwitchClick)}
+                    {renderLinkedText(m[2], onDipSwitchClick, false, model)}
                   </span>
                 </li>
               );
             }
             return (
               <li key={idx} style={{ paddingLeft: 22, fontSize: '0.88rem', lineHeight: 1.55 }}>
-                {renderLinkedText(step, onDipSwitchClick)}
+                {renderLinkedText(step, onDipSwitchClick, false, model)}
               </li>
             );
           })}
@@ -261,7 +261,7 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
           if (!trimmed) return null;
           return (
             <li key={idx} style={{ fontSize: '0.88rem', lineHeight: 1.55 }}>
-              {renderLinkedText(trimmed, onDipSwitchClick)}
+              {renderLinkedText(trimmed, onDipSwitchClick, false, model)}
             </li>
           );
         })}

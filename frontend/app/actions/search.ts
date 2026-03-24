@@ -287,6 +287,36 @@ export async function searchSpareParts(modelName: string, query: string, _fuzzy:
     }
 }
 
+// --- Sensor lookup ---
+
+export interface Sensor {
+    id: string;
+    model: string;
+    part_id: string;
+    part_code: string | null;
+    description: string | null;
+    section: string | null;
+    key: number | null;
+    page: number | null;
+}
+
+export async function getSensor(model: string, partId: string): Promise<Sensor | null> {
+    // Model aliasing: C7090→C7100, C14000→C12000, C4065/C4070→C4080
+    const aliasMap: Record<string, string> = {
+        C7090: 'C7100', C14000: 'C12000',
+        C4065: 'C4080', C4070: 'C4080',
+    };
+    const lookupModel = aliasMap[model] ?? model;
+    const { data, error } = await supabase
+        .from('sensors')
+        .select('id, model, part_id, part_code, description, section, key, page')
+        .eq('model', lookupModel)
+        .eq('part_id', partId.toUpperCase())
+        .single();
+    if (error || !data) return null;
+    return data as Sensor;
+}
+
 // --- Direct Supabase search (bypasses Rust backend) ---
 
 export async function searchPartsDirectly(query: string): Promise<ManualSparePart[]> {

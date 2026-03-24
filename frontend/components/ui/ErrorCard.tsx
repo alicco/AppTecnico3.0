@@ -2,6 +2,7 @@
 
 import { useState, ReactElement } from 'react';
 import { SparePartsSearch } from './SparePartsSearch';
+import { PsChip } from './SensorChip';
 
 interface SparePart {
   oem_code: string;
@@ -139,10 +140,13 @@ function renderLinkedText(
   text: string | undefined,
   onDipSwitchClick?: (sw: number, bit: number) => void,
   preWrap = false,
+  model?: string,
 ): React.ReactNode {
   if (!text) return null;
-  const dipswRegex = /(?:DipSW|SW)\s*(\d+)-(\d+)/gi;
-  const matches = [...text.matchAll(dipswRegex)];
+
+  // Combined regex: DipSW references OR PS references
+  const combinedRegex = /(?:((?:DipSW|SW)\s*\d+-\d+)|(PS-?\d{1,3}))/gi;
+  const matches = [...text.matchAll(combinedRegex)];
   if (!matches.length) {
     return preWrap ? <span style={{ whiteSpace: 'pre-wrap' }}>{text}</span> : text;
   }
@@ -150,7 +154,7 @@ function renderLinkedText(
   const parts: React.ReactNode[] = [];
   let cursor = 0;
   for (const match of matches) {
-    const [full, swStr, bitStr] = match;
+    const [full, dipswFull, psFull] = match;
     const idx = match.index!;
     if (idx > cursor) {
       parts.push(
@@ -159,21 +163,34 @@ function renderLinkedText(
         </span>,
       );
     }
-    parts.push(
-      <button
-        key={`d-${idx}`}
-        type="button"
-        className="chip chip-blue"
-        style={{ verticalAlign: 'middle', cursor: 'pointer' }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onDipSwitchClick?.(parseInt(swStr), parseInt(bitStr));
-        }}
-      >
-        {IcoSettings}
-        {full}
-      </button>,
-    );
+
+    if (dipswFull) {
+      const dipswMatch = dipswFull.match(/(\d+)-(\d+)/);
+      if (dipswMatch) {
+        parts.push(
+          <button
+            key={`d-${idx}`}
+            type="button"
+            className="chip chip-blue"
+            style={{ verticalAlign: 'middle', cursor: 'pointer' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDipSwitchClick?.(parseInt(dipswMatch[1]), parseInt(dipswMatch[2]));
+            }}
+          >
+            {IcoSettings}
+            {dipswFull}
+          </button>,
+        );
+      }
+    } else if (psFull && model) {
+      parts.push(
+        <PsChip key={`ps-${idx}`} label={psFull} model={model} />,
+      );
+    } else {
+      parts.push(<span key={`r-${idx}`}>{full}</span>);
+    }
+
     cursor = idx + full.length;
   }
   if (cursor < text.length) {
@@ -276,55 +293,31 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            padding: '16px 18px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '14px 18px',
             borderBottom: '1px solid var(--border-subtle)',
-            background: 'linear-gradient(180deg, rgba(56,189,248,0.05) 0%, transparent 100%)',
+            background: 'linear-gradient(90deg, rgba(56,189,248,0.05) 0%, transparent 60%)',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span
-              style={{
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--text-muted)',
-                marginBottom: 2,
-              }}
-            >
-              Codice d'errore
-            </span>
-            <span
-              className="mono"
-              style={{
-                fontSize: '1.75rem',
-                fontWeight: 900,
-                color: 'var(--accent)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1,
-              }}
-            >
-              {error.code}
-            </span>
-          </div>
-
+          <span
+            className="mono"
+            style={{
+              fontSize: '1.5rem',
+              fontWeight: 900,
+              color: 'var(--accent)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {error.code}
+          </span>
           {error.classification && (
-            <div style={{ alignSelf: 'flex-start' }}>
-              <span
-                className="chip chip-blue"
-                style={{
-                  fontSize: '0.8rem',
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  fontWeight: 600,
-                  display: 'inline-flex'
-                }}
-              >
-                {error.classification}
-              </span>
-            </div>
+            <span
+              className="chip chip-blue"
+              style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: 6 }}
+            >
+              {error.classification}
+            </span>
           )}
         </div>
 
@@ -334,7 +327,7 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
           {error.cause && (
             <Accordion label="Cause" icon={IcoWarning} iconColor="var(--amber)" defaultOpen>
               <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
-                {renderLinkedText(error.cause, onDipSwitchClick)}
+                {renderLinkedText(error.cause, onDipSwitchClick, false, model)}
               </p>
             </Accordion>
           )}
@@ -342,7 +335,7 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
           {error.measures && (
             <Accordion label="Measures" icon={IcoInfo} iconColor="var(--accent)">
               <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
-                {renderLinkedText(error.measures, onDipSwitchClick, true)}
+                {renderLinkedText(error.measures, onDipSwitchClick, true, model)}
               </p>
             </Accordion>
           )}
@@ -353,35 +346,33 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
             </Accordion>
           )}
 
-          <Accordion
-            label="Correction"
-            icon={error.correction?.toLowerCase().includes('warning') ? IcoWarning : IcoCheck}
-            iconColor={error.correction?.toLowerCase().includes('warning') ? 'var(--red)' : 'var(--text-secondary)'}
-          >
-            {!error.correction ? (
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
-                Nessuna correzione specifica indicata nel manuale.
-              </p>
-            ) : error.correction.toLowerCase().includes('warning') ? (
-              <div
-                style={{
-                  padding: '10px 12px',
-                  background: 'rgba(248,113,113,0.07)',
-                  border: '1px solid rgba(248,113,113,0.25)',
-                  borderRadius: 8,
-                  fontSize: '0.88rem',
-                  color: 'var(--red)',
-                  lineHeight: 1.6,
-                }}
-              >
-                ⚠️ {renderLinkedText(error.correction, onDipSwitchClick, true)}
-              </div>
-            ) : (
-              <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
-                {renderLinkedText(error.correction, onDipSwitchClick, true)}
-              </p>
-            )}
-          </Accordion>
+          {error.correction && (
+            <Accordion
+              label="Correction"
+              icon={error.correction.toLowerCase().includes('warning') ? IcoWarning : IcoCheck}
+              iconColor={error.correction.toLowerCase().includes('warning') ? 'var(--red)' : 'var(--text-secondary)'}
+            >
+              {error.correction.toLowerCase().includes('warning') ? (
+                <div
+                  style={{
+                    padding: '10px 12px',
+                    background: 'rgba(248,113,113,0.07)',
+                    border: '1px solid rgba(248,113,113,0.25)',
+                    borderRadius: 8,
+                    fontSize: '0.88rem',
+                    color: 'var(--red)',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  ⚠️ {renderLinkedText(error.correction, onDipSwitchClick, true, model)}
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
+                  {renderLinkedText(error.correction, onDipSwitchClick, true, model)}
+                </p>
+              )}
+            </Accordion>
+          )}
 
           {error.faulty_part_isolation && (
             <Accordion label="Fault Isolation" icon={IcoWarning} iconColor="var(--amber)">
@@ -395,7 +386,7 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
                   lineHeight: 1.6,
                 }}
               >
-                {renderLinkedText(error.faulty_part_isolation, onDipSwitchClick, true)}
+                {renderLinkedText(error.faulty_part_isolation, onDipSwitchClick, true, model)}
               </div>
             </Accordion>
           )}
@@ -543,3 +534,4 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
     </>
   );
 }
+

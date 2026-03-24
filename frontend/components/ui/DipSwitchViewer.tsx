@@ -383,11 +383,8 @@ export function DipSwitchViewer({ model, target, onClose }: DipSwitchViewerProps
                         return (
                           <div
                             key={sw.id}
+                            className="dipsw-row"
                             style={{
-                              display: 'grid',
-                              gridTemplateColumns: '44px 1fr 1fr 1fr',
-                              alignItems: 'center',
-                              gap: 10,
                               padding: '10px 14px',
                               borderRadius: 10,
                               border: isTarget
@@ -400,115 +397,107 @@ export function DipSwitchViewer({ model, target, onClose }: DipSwitchViewerProps
                               boxShadow: isTarget ? '0 0 16px rgba(56,189,248,0.12)' : 'none',
                             }}
                           >
-                            {/* Bit badge */}
-                            <div
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: 2,
-                              }}
-                            >
-                              <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>BIT</span>
+                            {/* Top row: bit badge + function */}
+                            <div className="dipsw-top">
                               <div
                                 style={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: '50%',
-                                  background: isTarget ? 'var(--accent)' : 'var(--bg-card)',
-                                  border: isTarget
-                                    ? '2px solid var(--accent)'
-                                    : '2px solid var(--border-default)',
                                   display: 'flex',
+                                  flexDirection: 'column',
                                   alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontWeight: 800,
-                                  fontSize: '0.8rem',
-                                  color: isTarget ? '#000' : 'var(--text-secondary)',
-                                  fontFamily: 'var(--font-mono)',
+                                  gap: 2,
+                                  flexShrink: 0,
                                 }}
                               >
-                                {sw.bit_number}
-                              </div>
-                            </div>
-
-                            {/* Function */}
-                            <div>
-                              <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>
-                                FUNCTION
-                              </div>
-                              <div style={{ fontSize: '0.83rem', fontWeight: 500, lineHeight: 1.35 }}>
-                                {sw.function_name}
-                              </div>
-                            </div>
-
-                            {/* Setting 0 */}
-                            <div
-                              style={{
-                                padding: '8px 10px',
-                                borderRadius: 8,
-                                background: sw.default_val === '0' ? 'rgba(74,222,128,0.08)' : 'var(--bg-card)',
-                                border: sw.default_val === '0'
-                                  ? '1px solid rgba(74,222,128,0.3)'
-                                  : '1px solid var(--border-subtle)',
-                                position: 'relative',
-                              }}
-                            >
-                              {sw.default_val === '0' && (
-                                <span
-                                  className="chip chip-green"
+                                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>BIT</span>
+                                <div
                                   style={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    right: 6,
-                                    fontSize: '0.58rem',
-                                    padding: '1px 5px',
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: '50%',
+                                    background: isTarget ? 'var(--accent)' : 'var(--bg-card)',
+                                    border: isTarget
+                                      ? '2px solid var(--accent)'
+                                      : '2px solid var(--border-default)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 800,
+                                    fontSize: '0.8rem',
+                                    color: isTarget ? '#000' : 'var(--text-secondary)',
+                                    fontFamily: 'var(--font-mono)',
                                   }}
                                 >
-                                  DEFAULT
-                                </span>
-                              )}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                                <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-muted)' }} />
-                                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>SET 0</span>
+                                  {sw.bit_number}
+                                </div>
                               </div>
-                              <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-primary)', lineHeight: 1.3 }}>
-                                {sw.setting_0 || '—'}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 2 }}>
+                                  FUNCTION
+                                </div>
+                                <div style={{ fontSize: '0.83rem', fontWeight: 500, lineHeight: 1.35 }}>
+                                  {sw.function_name}
+                                </div>
                               </div>
                             </div>
 
-                            {/* Setting 1 */}
-                            <div
-                              style={{
-                                padding: '8px 10px',
-                                borderRadius: 8,
-                                background: sw.default_val === '1' ? 'rgba(74,222,128,0.08)' : 'var(--bg-card)',
-                                border: sw.default_val === '1'
-                                  ? '1px solid rgba(74,222,128,0.3)'
-                                  : '1px solid var(--border-subtle)',
-                                position: 'relative',
-                              }}
-                            >
-                              {sw.default_val === '1' && (
-                                <span
-                                  className="chip chip-green"
-                                  style={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    right: 6,
-                                    fontSize: '0.58rem',
-                                    padding: '1px 5px',
-                                  }}
-                                >
-                                  DEFAULT
-                                </span>
-                              )}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                                <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)' }} />
-                                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>SET 1</span>
+                            {/* Bottom row: SET 0 + SET 1 */}
+                            <div className="dipsw-settings">
+                              {/* Setting 0 */}
+                              <div
+                                style={{
+                                  padding: '8px 10px',
+                                  borderRadius: 8,
+                                  background: sw.default_val === '0' ? 'rgba(74,222,128,0.08)' : 'var(--bg-card)',
+                                  border: sw.default_val === '0'
+                                    ? '1px solid rgba(74,222,128,0.3)'
+                                    : '1px solid var(--border-subtle)',
+                                  position: 'relative',
+                                }}
+                              >
+                                {sw.default_val === '0' && (
+                                  <span
+                                    className="chip chip-green"
+                                    style={{ position: 'absolute', top: -8, right: 6, fontSize: '0.58rem', padding: '1px 5px' }}
+                                  >
+                                    DEFAULT
+                                  </span>
+                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-muted)' }} />
+                                  <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>SET 0</span>
+                                </div>
+                                <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                                  {sw.setting_0 || '—'}
+                                </div>
                               </div>
-                              <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-primary)', lineHeight: 1.3 }}>
-                                {sw.setting_1 || '—'}
+
+                              {/* Setting 1 */}
+                              <div
+                                style={{
+                                  padding: '8px 10px',
+                                  borderRadius: 8,
+                                  background: sw.default_val === '1' ? 'rgba(74,222,128,0.08)' : 'var(--bg-card)',
+                                  border: sw.default_val === '1'
+                                    ? '1px solid rgba(74,222,128,0.3)'
+                                    : '1px solid var(--border-subtle)',
+                                  position: 'relative',
+                                }}
+                              >
+                                {sw.default_val === '1' && (
+                                  <span
+                                    className="chip chip-green"
+                                    style={{ position: 'absolute', top: -8, right: 6, fontSize: '0.58rem', padding: '1px 5px' }}
+                                  >
+                                    DEFAULT
+                                  </span>
+                                )}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+                                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)' }} />
+                                  <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>SET 1</span>
+                                </div>
+                                <div className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                                  {sw.setting_1 || '—'}
+                                </div>
                               </div>
                             </div>
                           </div>

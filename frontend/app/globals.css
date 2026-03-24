@@ -429,3 +429,30 @@ body {
   flex-direction: column;
   animation: scaleIn 0.2s ease-out;
 }
+
+/* ── DipSwitch row layout ───────────────────────────────── */
+.dipsw-row { display: flex; flex-direction: column; gap: 8px; }
+
+.dipsw-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dipsw-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Desktop: single row with 4 columns */
+@media (min-width: 600px) {
+  .dipsw-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 1fr 1fr;
+    align-items: center;
+    gap: 10px;
+  }
+  .dipsw-top { display: contents; }
+  .dipsw-settings { display: contents; }
+}

@@ -346,33 +346,40 @@ export function ErrorCard({ error, onDipSwitchClick, model }: ErrorProps) {
             </Accordion>
           )}
 
-          {error.correction && (
-            <Accordion
-              label="Correction"
-              icon={error.correction.toLowerCase().includes('warning') ? IcoWarning : IcoCheck}
-              iconColor={error.correction.toLowerCase().includes('warning') ? 'var(--red)' : 'var(--text-secondary)'}
-            >
-              {error.correction.toLowerCase().includes('warning') ? (
-                <div
-                  style={{
-                    padding: '10px 12px',
-                    background: 'rgba(248,113,113,0.07)',
-                    border: '1px solid rgba(248,113,113,0.25)',
-                    borderRadius: 8,
-                    fontSize: '0.88rem',
-                    color: 'var(--red)',
-                    lineHeight: 1.6,
-                  }}
-                >
-                  ⚠️ {renderLinkedText(error.correction, onDipSwitchClick, true, model)}
-                </div>
-              ) : (
-                <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
-                  {renderLinkedText(error.correction, onDipSwitchClick, true, model)}
-                </p>
-              )}
-            </Accordion>
-          )}
+          {(() => {
+            const isWarning = !!error.correction && error.correction.toLowerCase().includes('warning');
+            return (
+              <Accordion
+                label="Correction"
+                icon={isWarning ? IcoWarning : IcoCheck}
+                iconColor={isWarning ? 'var(--red)' : 'var(--text-secondary)'}
+              >
+                {!error.correction ? (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic' }}>
+                    Nessuna correzione disponibile.
+                  </p>
+                ) : isWarning ? (
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      background: 'rgba(248,113,113,0.07)',
+                      border: '1px solid rgba(248,113,113,0.25)',
+                      borderRadius: 8,
+                      fontSize: '0.88rem',
+                      color: 'var(--red)',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    ⚠️ {renderLinkedText(error.correction, onDipSwitchClick, true, model)}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
+                    {renderLinkedText(error.correction, onDipSwitchClick, true, model)}
+                  </p>
+                )}
+              </Accordion>
+            );
+          })()}
 
           {error.faulty_part_isolation && (
             <Accordion label="Fault Isolation" icon={IcoWarning} iconColor="var(--amber)">
